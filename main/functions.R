@@ -1,8 +1,6 @@
+library(here)
 
-srcdir <- dirname(sys.frame(1)$ofile)
-print(srcdir)
-
-RunGSEAforClusters <- function(SeuratObj, Cond1, Cond2, GeneSet='MousePath_GO_gmt.gmt', outputDir=getwd(), ...){
+RunGSEAforClusters <- function(SeuratObj, Cond1, Cond2, GeneSet=here('data/GeneSetDatabases/MousePath_GO_gmt.gmt'), outputDir=getwd(), ...){
 
   SeuratObj = SetAllIdent(SeuratObj, id = 'cluster.states')
   clusters = sort(unique(as.numeric(SeuratObj@meta.data$tree.ident)))
