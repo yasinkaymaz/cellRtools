@@ -202,7 +202,7 @@ SeuratWrapper <- function(ExpData, ProjectLabel, NewMeta, Normalize=T, scale.onl
   
   SeuratObj <- RunTSNE(SeuratObj, dims.use = 1:PCs, do.fast = TRUE,check_duplicates = FALSE)
   
-  pdf(paste(Label,".plots.pdf",sep=""),width=8,height = 8)
+  pdf(paste(ProjectLabel,".plots.pdf",sep=""),width=8,height = 8)
   PCAPlot(SeuratObj, dim.1 = 1, dim.2 = 2)
   PCElbowPlot(SeuratObj, num.pc = PCs)
   TSNEPlot(SeuratObj, do.label = TRUE)
@@ -467,6 +467,7 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels){
     testExpSet <- t(as.matrix(SeuratObject@data))
   }else{
     print("Expression matrix is provided...")
+    testExpSet <- t(as.matrix(testExpSet))
   }#Closes missing(SeuratObj)
   colnames(testExpSet) <- make.names(colnames(testExpSet))
   #Prepare Test Expression set
@@ -525,6 +526,7 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels){
     return(SeuratObject)
   }else{
     print("Prediction output is being exported ...")
+    rownames(testPred) <- rownames(testExpSet)
     return(testPred)
   }#Closes missing(SeuratObj)
 }#closes the function
@@ -553,8 +555,6 @@ PlotPredictions <- function(SeuratObject, model, save.pdf=T, outputFilename="plo
     theme(axis.text.x = element_text(angle = 90))+
     scale_y_discrete(name ="Predicted Cell Types")+
     scale_x_discrete(name ="Cell Types")
-  
-  
   
   require(gridExtra)
   
