@@ -260,7 +260,7 @@ selecteGenes.best.loadings <- function(trainingExpData, pcs, num, caption="Highe
   return(bestgenes)
 }
 
-prepareDataset <- function(ExpressionData, CellLabels, do.splitTest=FALSE, percent.Testset=0.2, regenerate.data=FALSE, run.name, plotStats=FALSE, featureGeneSet){
+prepareDataset <- function(ExpressionData, CellLabels, do.splitTest=FALSE, percent.Testset=0.2, regenerate.data=FALSE, run.name, plotStats=FALSE, PCs, featureGeneSet){
   #Required: This will take a Normalized expression data matrix, rows as genes and columns as cells. Example: as.matrix(SeuratObject@data)
   #Required: A list of cell labels. same dimension as colnames(input expression). Example: SeuratObject@meta.data$res.1
   #This will have an option to split data into test and training datasets. Default is, 0.2, 20%.
@@ -305,7 +305,7 @@ prepareDataset <- function(ExpressionData, CellLabels, do.splitTest=FALSE, perce
     
     if(missing(featureGeneSet)){
       #Perform PCA on data (optional: only on training portion) and select genes for features
-      pca.genes <- as.character(selecteGenes.best.loadings(train,10,2000))
+      pca.genes <- as.character(selecteGenes.best.loadings(train,PCs,2000))
     }else{
       pca.genes <- make.names(featureGeneSet)
     }
@@ -327,7 +327,7 @@ prepareDataset <- function(ExpressionData, CellLabels, do.splitTest=FALSE, perce
     
     if(missing(featureGeneSet)){
       #Perform PCA on data (optional: only on training portion) and select genes for features
-      pca.genes <- as.character(selecteGenes.best.loadings(train,10,2000))
+      pca.genes <- as.character(selecteGenes.best.loadings(train,PCs,2000))
     }else{
       pca.genes <- make.names(featureGeneSet)
     }
@@ -347,12 +347,30 @@ prepareDataset <- function(ExpressionData, CellLabels, do.splitTest=FALSE, perce
   }else{
     print("Skipping plots for stats...")
   }
-  
+  return(trainingData.postPCA)
 }#closes the function
 
-CellTyperTrainer <- function(trainingData, run.name, improve=T){
+CellTyperTrainer <- function(ExpressionData, CellLabels, run.name, do.splitTest=F, PCs, improve=T){
   library(randomForest)
   library(rfUtilities)
+  library(tidyverse)
+  
+  if(missing(PCs)){
+    PCs=length(unique(CellLabels))
+  }else{
+    PCs=PCs
+  }
+  
+  ExpressionData <- as.matrix(ExpressionData)
+
+  if(file.exists(paste(run.name,".trainingData.postPCA.data",sep = ""))){
+    print("Training data already exists...")
+    trainingData <- get(load(paste(run.name,".trainingData.postPCA.data",sep = "")))
+  }else{
+    print("creating the training data...")
+    trainingData <- prepareDataset(ExpressionData = ExpressionData, CellLabels = CellLabels, do.splitTest = do.splitTest, PCs = PCs, run.name = run.name)
+    }
+  
   #Added: "sampsize=c(table(trainingData$CellType))". Revisit this later to make sure it is working as expected...
   rf <- randomForest(CellType~., data = trainingData, norm.votes = TRUE, importance=TRUE, proximity = TRUE, ntree=500, sampsize=c(table(trainingData$CellType)))
   print(rf)
