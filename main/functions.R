@@ -170,7 +170,7 @@ SummarizeGSEAoutputs <- function(GSEAoutputDir="./"){
   return(sig.GSreportsTable)
 }
 
-SeuratWrapper <- function(SeuratObjName, ExpData, Label, NewMeta, Normalize=T){
+SeuratWrapper <- function(SeuratObjName, ExpData, Label, NewMeta, Normalize=T, scale.only.var=T){
   
   SeuratObj <- CreateSeuratObject(raw.data = ExpData, project = Label, min.genes = 500)
   
@@ -184,7 +184,11 @@ SeuratWrapper <- function(SeuratObjName, ExpData, Label, NewMeta, Normalize=T){
   
   hv.genes <- head(rownames(SeuratObj@hvg.info), 1000)
   
-  SeuratObj <- ScaleData(SeuratObj,genes.use = hv.genes, do.par=T, num.cores = 8)
+  if (scale.only.var == TRUE){
+    SeuratObj <- ScaleData(SeuratObj, do.par=T, num.cores = 8)
+  }else{
+    SeuratObj <- ScaleData(SeuratObj, genes.use = hv.genes, do.par=T, num.cores = 8)
+  }
   
   if(!missing(NewMeta)){
     SeuratObj <- AddMetaData(SeuratObj, NewMeta)    
