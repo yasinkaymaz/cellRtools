@@ -238,7 +238,7 @@ selecteGenes.best.loadings <- function(trainingExpData, pcs, num, caption="Highe
   trainingExpData <- trainingExpData[, apply(trainingExpData, 2, var) != 0]
   trainingExpData <- trainingExpData[, which(colVars(as.matrix(trainingExpData)) > 0.05)]
   
-  pcatrain <- prcomp(trainingExpData,center = FALSE,scale=FALSE,rank. = 20)
+  pcatrain <- prcomp(trainingExpData, center = FALSE, scale=FALSE, rank. = pcs)
   save(pcatrain,file="PCA.train.data")
   
   print("Selecting the genes as best features...")
@@ -327,7 +327,7 @@ prepareDataset <- function(ExpressionData, CellLabels, do.splitTest=FALSE, perce
     
     if(missing(featureGeneSet)){
       #Perform PCA on data (optional: only on training portion) and select genes for features
-      pca.genes <- as.character(selecteGenes.best.loadings(train,PCs,2000))
+      pca.genes <- as.character(selecteGenes.best.loadings(trainingExpData = train,pcs = PCs,num = 2000))
     }else{
       pca.genes <- make.names(featureGeneSet)
     }
