@@ -451,7 +451,9 @@ PlotPredictions <- function(SeuratObject, model, save.pdf=T, outputFilename="plo
   conf.mat <- reshape2::melt(as.matrix(conf.mat)) %>% as.tibble() %>% group_by(Var1) %>%
     mutate(freq = 100*value/sum(value))
   
-  pdf(paste(outputFilename,".pdf",sep=""),width= 10,height = 10)
+  class_n = length(head(colSums(model$confusion),-1))
+  
+  pdf(paste(outputFilename,".pdf",sep=""),width= 2*class_n, height = 2*class_n)
   
   
   require(gridExtra)
@@ -498,7 +500,7 @@ PlotPredictions <- function(SeuratObject, model, save.pdf=T, outputFilename="plo
     theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.position="right")+
     labs(y="Number of Cells (bars)",title=paste("Prediction outcome", sep=""))
   
-  p4 <- ggplot(SeuratObject@meta.data, aes(KLe, KLe*Diff, color= PredictionStatus))+ geom_point(size=.6) + ylim(0,2) + xlim(0,2.0)
+  p4 <- ggplot(SeuratObject@meta.data, aes(KLe, KLe*Diff, color= PredictionStatus))+ geom_point(size=.6)
   
   grid.arrange(p3, p4, nrow=2)
   
