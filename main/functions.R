@@ -445,23 +445,71 @@ CellTyperTrainer <- function(ExpressionData, CellLabels, run.name, do.splitTest=
   return(rf)
 }
 
-bestScoreExtractor <- function(PredictionsTable){
-  scoreslist <- NULL;
-  for (i in 1:length(PredictionsTable[,1])){
-    bestscore <- PredictionsTable[i, (names(PredictionsTable) == PredictionsTable[i,]$Prediction)]
-    scoreslist <- rbind(scoreslist, bestscore)
-  }
-  rownames(scoreslist) <- rownames(PredictionsTable)
-  colnames(scoreslist) <- "BestVotesPercent"
-  scoreslist <- as.data.frame(scoreslist)
-  #assign("bestscoresList", scoreslist, envir = globalenv())
-  return(scoreslist)
+PlotPredictions <- function(SeuratObject, model, save.pdf=T, outputFilename="plotpredictions"){
+  #Evaluate model prediction accuracy:
+  conf.mat <- model$confusion %>% as.data.frame() %>% select(-class.error)
+  conf.mat <- reshape2::melt(as.matrix(conf.mat)) %>% as.tibble() %>% group_by(Var1) %>%
+    mutate(freq = 100*value/sum(value))
+  
+  pdf(paste(outputFilename,".pdf",sep=""),width= 10,height = 10)
+  
+  
+  require(gridExtra)
+  
+  p1 <- ggplot(conf.mat, aes(Var1, Var2, fill=freq)) + geom_tile(color = "white")+
+    scale_fill_gradient2(low = "white", high = "red", name="% Predictions")+
+    theme(axis.text.x = element_text(angle = 90))+
+    scale_y_discrete(name ="Predicted Cell Types")+
+    scale_x_discrete(name ="Cell Types Classes")
+  
+  errorSize <- as.data.frame(cbind(model$confusion[,"class.error"],
+                                   head(colSums(model$confusion),-1)))
+  colnames(errorSize) <- c("ClassError","ClassTrainingSize")
+  errorSize$CellTypeClass <- rownames(errorSize)
+  acc <- 100-100*colSums(model$confusion)["class.error"]/length(head(colSums(model$confusion),-1))
+  names(acc) <- "accuracy"
+  
+  p2 <- ggplot(errorSize)  + 
+    geom_bar(aes(x=reorder(CellTypeClass,-ClassTrainingSize), y=ClassTrainingSize),stat="identity", fill="tan1", colour="sienna3")+
+    geom_point(aes(x=reorder(CellTypeClass,-ClassTrainingSize), y=ClassError*max(errorSize$ClassTrainingSize)),stat="identity",size=3)+
+    scale_y_continuous(sec.axis = sec_axis(~./max(errorSize$ClassTrainingSize),name="Class % Error rate (Dots)"))+
+    labs(y="Class Size in Training (Bars)",title=paste("Model Prediction Accuracy is ",round(acc,digits = 2),"%", sep=""))+
+    theme(axis.text.x = element_text(angle = 90,hjust = 1))+
+    scale_x_discrete(name ="Cell Type Classes")
+  
+  grid.arrange(p1, p2, nrow=2)
+  
+  #Prediction outputs
+  FeaturePlot(object = SeuratObject, 
+              features.plot = model$classes, 
+              cols.use = c("grey", "blue"), 
+              reduction.use = "tsne")
+  
+  TSNEPlot(SeuratObject, group.by="Prediction",do.label=T)
+  
+  FeaturePlot(SeuratObject, features.plot = "BestVotesPercent", no.legend = F, cols.use = c("gray","red"))
+  
+  FeaturePlot(SeuratObject, features.plot = "KLe", no.legend = F, cols.use = c("gray","purple"))
+  
+  p3 <- ggplot(data=SeuratObject@meta.data)+
+    geom_histogram(aes(x=Prediction,fill=Prediction),stat = "count")+
+    geom_violin(aes(x=Prediction,y=BestVotesPercent*max(table(SeuratObject@meta.data$Prediction)),fill=Prediction))+ 
+    scale_y_continuous(sec.axis = sec_axis(~./max(table(SeuratObject@meta.data$Prediction)),name="Probability Scores (violin)"))+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.position="right")+
+    labs(y="Number of Cells (bars)",title=paste("Prediction outcome", sep=""))
+  
+  p4 <- ggplot(SeuratObject@meta.data, aes(KLe, KLe*Diff, color= PredictionStatus))+ geom_point(size=.6) + ylim(0,2) + xlim(0,2.0)
+  
+  grid.arrange(p3, p4, nrow=2)
+  
+  dev.off()
 }
 
-CellTyper <- function(SeuratObject, testExpSet, model, priorLabels){
+CellTyper <- function(SeuratObject, testExpSet, model, priorLabels, outputFilename="plotpredictions"){
   
   library(caret)
   library(randomForest)
+  library(tidyverse)
   
   if(!missing(SeuratObject)){
     testExpSet <- t(as.matrix(SeuratObject@data))
@@ -492,11 +540,13 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels){
   class_n <- length(model$classes)
   testPred$Diff <- apply(testPred, 1, function(x) max(x)-sort(x,partial=length(x)-1)[length(x)-1])
   testPred$KLe <- apply(testPred[,which(!names(testPred) %in% c("Diff"))], 1, function(x) KL.empirical(y1 = as.numeric(x), y2 = rep(1/class_n, class_n)) )
+  testPred$BestVotesPercent <- apply(testPred[,which(!names(testPred) %in% c("Diff","KLe"))],1, function(x) max(x)  )
   testPred$Prediction <- predict(model, TestData, type="response")
   #!!!
   #Flag cell type prediction if Kullback-Leibler divergence value is higher than 0.5 OR the difference between the highest and the second highest percent vote (Diff) is higher than two time of random vote rate (2/class_n)  
-  testPred <- testPred %>% as.tibble() %>% mutate(PredictionStatus = ifelse( (KLe <= 0.5) | (Diff <= 2/class_n), "Undetermined", "Detected")) %>% as.data.frame()
-  # testPred <- testPred %>% as.tibble() %>% mutate(.,    Prediction = ifelse( (KLe <= 0.5) | (Diff <= 2/class_n), "Unclassified", Prediction)) %>% as.data.frame()
+  testPred <- testPred %>% as.tibble() %>% mutate(Prediction = if_else( (KLe*Diff <= 0.5), "Undetermined", as.character(Prediction) )) %>% as.data.frame()
+  testPred <- testPred %>% as.tibble() %>% mutate(PredictionStatus = if_else( (KLe*Diff <= 0.5), "Undetermined", "Detected")) %>% as.data.frame()
+ #testPred <- testPred %>% as.tibble() %>% mutate(Prediction = ifelse( (KLe <= 0.5) | (Diff <= 2/class_n), "Unclassified", as.character(Prediction) )) %>% as.data.frame()
   #@@@
   
   if(missing(priorLabels)){
@@ -504,6 +554,7 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels){
     
   }else{
     #Provided prior class labels (priorLabels) has to be a dataframe with same rownames as input testExpSet with one column storing labels.
+    priorLabels <- as.data.frame(priorLabels)
     colnames(priorLabels) <- c("Prior")
     testPred <- cbind(testPred, priorLabels)
     
@@ -519,10 +570,13 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels){
   
   if(!missing(SeuratObject)){
     #testPred$BestVotesPercent <- bestScoreExtractor(testPred)
-    testPred <- cbind(testPred,bestScoreExtractor(testPred))
+    #testPred <- cbind(testPred,bestScoreExtractor(testPred))
     
     SeuratObject@meta.data <- SeuratObject@meta.data[,which(!colnames(SeuratObject@meta.data) %in% colnames(testPred))]
     SeuratObject@meta.data <- cbind(SeuratObject@meta.data, testPred)
+    
+    PlotPredictions(SeuratObject = SeuratObject, model = model, outputFilename = outputFilename)
+    
     return(SeuratObject)
   }else{
     print("Prediction output is being exported ...")
@@ -530,44 +584,6 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels){
     return(testPred)
   }#Closes missing(SeuratObj)
 }#closes the function
-
-PlotPredictions <- function(SeuratObject, model, save.pdf=T, outputFilename="plotpredictions"){
-  #Evaluate model prediction accuracy:
-  conf.mat <- model$confusion %>% as.data.frame() %>% select(-class.error)
-  conf.mat <- reshape2::melt(as.matrix(conf.mat)) %>% as.tibble() %>% group_by(Var1) %>%
-    mutate(freq = 100*value/sum(value))
-  
-  pdf(paste(outputFilename,".pdf",sep=""),width= 10,height = 10)
-  
-  FeaturePlot(object = SeuratObject, 
-              features.plot = model$classes, 
-              cols.use = c("grey", "blue"), 
-              reduction.use = "tsne")
-  
-  TSNEPlot(SeuratObject, group.by="Prediction",do.label=T)
-  
-  FeaturePlot(SeuratObject, features.plot = "BestVotesPercent", no.legend = F, cols.use = c("gray","red"))
-  
-  FeaturePlot(SeuratObject, features.plot = "KLe", no.legend = F, cols.use = c("gray","purple"))
-  
-  plt1 <- ggplot(conf.mat, aes(Var1, Var2, fill=freq)) + geom_tile(color = "white")+
-    scale_fill_gradient2(low = "white", high = "red", name="% Predictions")+
-    theme(axis.text.x = element_text(angle = 90))+
-    scale_y_discrete(name ="Predicted Cell Types")+
-    scale_x_discrete(name ="Cell Types")
-  
-  require(gridExtra)
-  
-  p1 <- ggplot(data=SeuratObject@meta.data,aes(x=Prediction,y=BestVotesPercent,color=Prediction))+
-    geom_violin()+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
-  
-  p2 <- ggplot(data=SeuratObject@meta.data,aes(x=Prediction,fill=Prediction))+
-    geom_histogram(stat = "count")+theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.position="right")
-  
-  grid.arrange(p1, p2, plt1,nrow=3)
-  
-  dev.off()
-}
 
 SeuratCCAmerger <- function(listofObjects){
   # Determine genes to use for CCA, must be highly variable in at least 2 datasets
