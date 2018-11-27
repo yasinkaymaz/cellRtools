@@ -1,8 +1,8 @@
 #Todo:
-#1. implement test, validation, CV, accuracy
+#1. implement test, validation, CV, accuracy --> DONE.
 #2. Find a way to best choose KLe*Diff threshold
 #3. Associate confidence with predictions. and label.
-
+#4. Limit recursive model improvement to only one cycle in order to prevent overfitting. or instead implement a doublet detection to filter out bad cell inputs from the training data.
 
 library(here)
 
@@ -218,6 +218,41 @@ SeuratWrapper <- function(ExpData, ProjectLabel, NewMeta, Normalize=T, scale.onl
   return(SeuratObj)
 }
 
+SeuratCCAmerger <- function(listofObjects){
+  # Determine genes to use for CCA, must be highly variable in at least 2 datasets
+  #ob.list <- list(zeisel, romanov, tasic, marques)
+  ob.list <- listofObjects
+  genesuse <- c()
+  ids=NULL
+  for (i in 1:length(ob.list)) {
+    genesuse <- c(genesuse, head(rownames(ob.list[[i]]@hvg.info), 1000))
+    ob.list[[i]]@meta.data$dataSource <- paste("id",i,sep="")
+    ids <- c(ids, paste("id",i,sep=""))
+  }
+  genesuse <- names(which(table(genesuse) > 1))
+  for (i in 1:length(ob.list)) {
+    genesuse <- genesuse[genesuse %in% rownames(ob.list[[i]]@scale.data)]
+  }
+  
+  if(length(ob.list) > 2){
+    # Run multi-set CCA
+    integrated <- RunMultiCCA(ob.list, genes.use = genesuse, num.ccs = 15, add.cell.ids = ids)
+    # Run rare non-overlapping filtering
+    integrated <- CalcVarExpRatio(object = integrated, reduction.type = "pca", dims.use = 1:10, grouping.var = "dataSource")
+    integrated <- SubsetData(integrated, subset.name = "var.ratio.pca", accept.low = 0.5)
+  }else{
+    #integrated <- RunCCA(object = ob.list[[1]], object2 = ob.list[[2]], genes.use = genesuse, num.cc = 15, add.cell.id = ids)
+    integrated <- RunCCA(object = ob.list[[1]], object2 = ob.list[[2]], genes.use = genesuse, num.cc = 15)
+  }
+  # Alignment
+  integrated <- AlignSubspace(integrated, reduction.type = "cca", dims.align = 1:10, grouping.var = "dataSource")
+  # t-SNE and Clustering
+  integrated <- FindClusters(integrated, reduction.type = "cca.aligned", dims.use = 1:10, save.SNN = T, resolution = 0.4)
+  integrated <- RunTSNE(integrated, reduction.use = "cca.aligned", dims.use = 1:10)
+  save(integrated, file="integrated.Aligned.seurat.Robj")
+  return(integrated)
+}
+
 FeaturePrep <- function(SeuratObj, gene.set, ScoreName){
   library(matrixStats)
   # Get mean expression of genes of interest per cell
@@ -360,6 +395,7 @@ CellTyperTrainer <- function(ExpressionData, CellLabels, run.name, do.splitTest=
   library(randomForest)
   library(rfUtilities)
   library(tidyverse)
+  library(caret)
   
   if(missing(PCs)){
     PCs=length(unique(CellLabels))
@@ -554,7 +590,7 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels, outputFilena
   #Flag cell type prediction if Kullback-Leibler divergence value is higher than 0.5 OR the difference between the highest and the second highest percent vote (Diff) is higher than two time of random vote rate (2/class_n)  
   testPred <- testPred %>% as.tibble() %>% mutate(Prediction = if_else( (KLe <= 0.25) | (Diff <= 2/class_n), "Undetermined", as.character(Prediction) )) %>% as.data.frame()
   testPred <- testPred %>% as.tibble() %>% mutate(PredictionStatus = if_else( (KLe <= 0.25) | (Diff <= 2/class_n), "Undetermined", "Detected")) %>% as.data.frame()
- #testPred <- testPred %>% as.tibble() %>% mutate(Prediction = ifelse( (KLe <= 0.5) | (Diff <= 2/class_n), "Unclassified", as.character(Prediction) )) %>% as.data.frame()
+  #testPred <- testPred %>% as.tibble() %>% mutate(Prediction = ifelse( (KLe <= 0.5) | (Diff <= 2/class_n), "Unclassified", as.character(Prediction) )) %>% as.data.frame()
   #@@@
   
   if(missing(priorLabels)){
@@ -593,39 +629,264 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels, outputFilena
   }#Closes missing(SeuratObj)
 }#closes the function
 
-SeuratCCAmerger <- function(listofObjects){
-  # Determine genes to use for CCA, must be highly variable in at least 2 datasets
-  #ob.list <- list(zeisel, romanov, tasic, marques)
-  ob.list <- listofObjects
-  genesuse <- c()
-  ids=NULL
-  for (i in 1:length(ob.list)) {
-    genesuse <- c(genesuse, head(rownames(ob.list[[i]]@hvg.info), 1000))
-    ob.list[[i]]@meta.data$dataSource <- paste("id",i,sep="")
-    ids <- c(ids, paste("id",i,sep=""))
-  }
-  genesuse <- names(which(table(genesuse) > 1))
-  for (i in 1:length(ob.list)) {
-    genesuse <- genesuse[genesuse %in% rownames(ob.list[[i]]@scale.data)]
+######################################################################
+CellTyperTrainer2 <- function(ExpressionData, CellLabels, run.name, do.splitTest=F, PCs, improve=F){
+  library(randomForest)
+  library(rfUtilities)
+  library(tidyverse)
+  library(caret)
+  
+  if(missing(PCs)){
+    PCs=length(unique(CellLabels))
+  }else{
+    PCs=PCs
   }
   
-  if(length(ob.list) > 2){
-    # Run multi-set CCA
-    integrated <- RunMultiCCA(ob.list, genes.use = genesuse, num.ccs = 15, add.cell.ids = ids)
-    # Run rare non-overlapping filtering
-    integrated <- CalcVarExpRatio(object = integrated, reduction.type = "pca", dims.use = 1:10, grouping.var = "dataSource")
-    integrated <- SubsetData(integrated, subset.name = "var.ratio.pca", accept.low = 0.5)
+  ExpressionData <- as.matrix(ExpressionData)
+  
+  if(file.exists(paste(run.name,".trainingData.postPCA.data",sep = ""))){
+    print("Training data already exists...")
+    trainingData <- get(load(paste(run.name,".trainingData.postPCA.data",sep = "")))
   }else{
-    #integrated <- RunCCA(object = ob.list[[1]], object2 = ob.list[[2]], genes.use = genesuse, num.cc = 15, add.cell.id = ids)
-    integrated <- RunCCA(object = ob.list[[1]], object2 = ob.list[[2]], genes.use = genesuse, num.cc = 15)
+    print("creating the training data...")
+    trainingData <- prepareDataset(ExpressionData = ExpressionData, CellLabels = CellLabels, do.splitTest = do.splitTest, PCs = PCs, run.name = run.name)
   }
-  # Alignment
-  integrated <- AlignSubspace(integrated, reduction.type = "cca", dims.align = 1:10, grouping.var = "dataSource")
-  # t-SNE and Clustering
-  integrated <- FindClusters(integrated, reduction.type = "cca.aligned", dims.use = 1:10, save.SNN = T, resolution = 0.4)
-  integrated <- RunTSNE(integrated, reduction.use = "cca.aligned", dims.use = 1:10)
-  save(integrated, file="integrated.Aligned.seurat.Robj")
-  return(integrated)
+  
+  #10-fold Cross Validation
+  train_control <- trainControl(method="cv", number=10, savePredictions = TRUE)
+  model <- train(CellType~., data=trainingData, trControl=train_control, method="rf", norm.votes = TRUE, importance=TRUE, proximity = TRUE, ntree=500, sampsize=c(table(trainingData$CellType)))
+
+  
+  if(improve == T){
+    
+    rf <- model$finalModel
+    
+    is.nan.data.frame <- function(x)
+      do.call(cbind, lapply(x, is.nan))
+    
+    rfvotes <- as.data.frame(rf$votes)
+    rfvotes$bestvote <- apply(rfvotes, 1, function(x) max(x))
+    rfvotes$label <- apply(rf$votes, 1, function(x)  names(x)[which.max(x)] )
+    rfvotes$inputnames <- rownames(rfvotes)
+    e <- as.data.frame(table(rfvotes$label))
+    Bestscore <- rfvotes %>% as.tibble() %>% summarize(median=median(bestvote)) %>% c()
+    
+    #Defaults
+    filter_p = 0.05
+    bestvote_cutoff = 0.7
+    badinput_ids <- NULL
+    round_n=1
+    badinput_stats <- data.frame()
+    currentscore = Bestscore$median
+    toss_n = dim(rfvotes)[1]
+    
+    #While Median Best votes score overall is larger in the new iteration AND the number of inputs need to be tossed is larger %1 of all input data, then continue.
+    #while (Bestscore$median >= currentscore && toss_n > round(0.01*dim(rfvotes)[1]) ){
+    while (round_n < 2 ){#run this only once...
+      
+      print(paste("Round number ",round_n))
+      print(paste("Current score is", currentscore,". toss_n is", toss_n, ". Fractions is", round(0.01*dim(rfvotes)[1])))
+      
+      for(i in 1:length(e$Var1)){
+        badinputs <- rfvotes %>% as.tibble() %>% filter(., label == e$Var1[i] & bestvote < bestvote_cutoff) %>% arrange(bestvote) %>% top_n(n=round(filter_p*e$Freq[i]), wt=-bestvote) %>% select(inputnames) %>% c()
+        badinputs.m <- rfvotes %>% as.tibble() %>% filter(., label == e$Var1[i] & bestvote < bestvote_cutoff) %>% arrange(bestvote) %>% top_n(n=round(filter_p*e$Freq[i]), wt=-bestvote) %>% summarize(mean=mean(bestvote)) %>% c()
+        badinput_ids <- unique(c(badinput_ids, badinputs$inputnames))
+        classBestscore <- rfvotes %>% as.tibble() %>%  filter(., label == e$Var1[i]) %>% summarize(median=median(bestvote)) %>% c()
+        class_badinput_stats <- data.frame(class=e$Var1[i], classInputSize=e$Freq[i], allBestscoreMedian=Bestscore$median, classBestscoreMedian=classBestscore$median, tossedInput=length(badinputs$inputnames), tossedBestvoteMean=badinputs.m$mean, iteration=round_n)
+        badinput_stats <- rbind(badinput_stats, class_badinput_stats)
+      }
+      
+      badinput_stats[is.nan(badinput_stats)] <- 0
+      toss_n <- badinput_stats %>% as.tibble() %>% filter(., iteration == round_n) %>% summarise(n=sum(tossedInput)) %>% c()
+      toss_n <- toss_n$n
+      
+      print(badinput_stats)
+      
+      #filter input using the bad input list generated in the previous iteration
+      trainingData <- trainingData[which(!rownames(trainingData) %in% badinput_ids ),]
+      
+      #run the RF again with the updated training set
+      model <- train(CellType~., data=trainingData, trControl=train_control, method="rf", norm.votes = TRUE, importance=TRUE, proximity = TRUE, ntree=500, sampsize=c(table(trainingData$CellType)))
+      rf <- model$finalModel
+      #Check again to see if there is room to improve:
+      rfvotes <- as.data.frame(rf$votes)
+      rfvotes$bestvote <- apply(rfvotes, 1, function(x) max(x))
+      rfvotes$label <- apply(rf$votes, 1, function(x)  names(x)[which.max(x)] )
+      rfvotes$inputnames <- rownames(rfvotes)
+      e <- as.data.frame(table(rfvotes$label))
+      Bestscore <- rfvotes %>% as.tibble() %>% summarize(median=median(bestvote)) %>% c()
+      #update the round
+      round_n = round_n + 1
+    }#closes the while loop
+    model <- rf
+  }#closes the improve option
+  
+  pdf(paste(run.name,".pdf",sep=""),width= 1.5*class_n, height = 1.5*class_n)
+  require(gridExtra)
+  errorSize <- as.data.frame(cbind(model$finalModel$confusion[,"class.error"],
+                                   head(colSums(model$finalModel$confusion),-1)))
+  colnames(errorSize) <- c("ClassError","ClassTrainingSize")
+  errorSize$CellTypeClass <- rownames(errorSize)
+  acc <- getTrainPerf(model)["TrainAccuracy"]*100
+  
+  p1 <- ggplot(conf.mat, aes(Var1, Var2, fill=freq)) + geom_tile(color = "white")+
+    scale_fill_gradient2(low = "white", high = "red", name="% Predictions")+
+    theme(axis.text.x = element_text(angle = 90))+
+    scale_y_discrete(name ="Predicted Cell Types")+
+    scale_x_discrete(name ="Cell Types Classes")
+  
+  p2 <- ggplot(errorSize)  + 
+    geom_bar(aes(x=reorder(CellTypeClass,-ClassTrainingSize), y=ClassTrainingSize),stat="identity", fill="tan1", colour="sienna3")+
+    geom_point(aes(x=reorder(CellTypeClass,-ClassTrainingSize), y=ClassError*max(errorSize$ClassTrainingSize)),stat="identity",size=3)+
+    scale_y_continuous(sec.axis = sec_axis(~./max(errorSize$ClassTrainingSize),name="Class % Error rate (Dots)"))+
+    labs(y="Class Size in Training (Bars)",title=paste("Model Prediction Accuracy is ",round(acc,digits = 2),"%", sep=""))+
+    theme(axis.text.x = element_text(angle = 90,hjust = 1))+
+    scale_x_discrete(name ="Cell Type Classes")
+  
+  grid.arrange(p1, p2, nrow=2)
+  
+  dev.off()
+  
+  save(model, file=paste(run.name,".RF_model.Robj",sep = ""))
+  return(model)
 }
 
+PlotPredictions2 <- function(SeuratObject, model, save.pdf=T, outputFilename="plotpredictions"){
+  #Evaluate model prediction accuracy:
+  conf.mat <- model$finalModel$confusion %>% as.data.frame() %>% select(-class.error)
+  conf.mat <- reshape2::melt(as.matrix(conf.mat)) %>% as.tibble() %>% group_by(Var1) %>%
+    mutate(freq = 100*value/sum(value))
+  
+  class_n = length(model$finalModel$classes)
+  
+  pdf(paste(outputFilename,".pdf",sep=""),width= 1.5*class_n, height = 1.5*class_n)
+  
+  
+  require(gridExtra)
+  
+  p1 <- ggplot(conf.mat, aes(Var1, Var2, fill=freq)) + geom_tile(color = "white")+
+    scale_fill_gradient2(low = "white", high = "red", name="% Predictions")+
+    theme(axis.text.x = element_text(angle = 90))+
+    scale_y_discrete(name ="Predicted Cell Types")+
+    scale_x_discrete(name ="Cell Types Classes")
+  
+  errorSize <- as.data.frame(cbind(model$finalModel$confusion[,"class.error"],
+                                   head(colSums(model$finalModel$confusion),-1)))
+  colnames(errorSize) <- c("ClassError","ClassTrainingSize")
+  errorSize$CellTypeClass <- rownames(errorSize)
+  #acc <- 100-100*colSums(model$finalModel$confusion)["class.error"]/length(head(colSums(model$finalModel$confusion),-1))
+  #names(acc) <- "accuracy"
+  acc <- getTrainPerf(model)["TrainAccuracy"]*100
+  
+  
+  p2 <- ggplot(errorSize)  + 
+    geom_bar(aes(x=reorder(CellTypeClass,-ClassTrainingSize), y=ClassTrainingSize),stat="identity", fill="tan1", colour="sienna3")+
+    geom_point(aes(x=reorder(CellTypeClass,-ClassTrainingSize), y=ClassError*max(errorSize$ClassTrainingSize)),stat="identity",size=3)+
+    scale_y_continuous(sec.axis = sec_axis(~./max(errorSize$ClassTrainingSize),name="Class % Error rate (Dots)"))+
+    labs(y="Class Size in Training (Bars)",title=paste("Model Prediction Accuracy is ",round(acc,digits = 2),"%", sep=""))+
+    theme(axis.text.x = element_text(angle = 90,hjust = 1))+
+    scale_x_discrete(name ="Cell Type Classes")
+  
+  grid.arrange(p1, p2, nrow=2)
+  
+  #Prediction outputs
+  FeaturePlot(object = SeuratObject, 
+              features.plot = model$finalModel$classes, 
+              cols.use = c("grey", "blue"), 
+              reduction.use = "tsne")
+  
+  TSNEPlot(SeuratObject, group.by="Prediction",do.label=T)
+  
+  FeaturePlot(SeuratObject, features.plot = "BestVotesPercent", no.legend = F, cols.use = c("gray","red"))
+  
+  FeaturePlot(SeuratObject, features.plot = "KLe", no.legend = F, cols.use = c("gray","purple"))
+  
+  p3 <- ggplot(data=SeuratObject@meta.data)+
+    geom_histogram(aes(x=Prediction,fill=Prediction),stat = "count")+
+    geom_violin(aes(x=Prediction,y=BestVotesPercent*max(table(SeuratObject@meta.data$Prediction)),fill=Prediction))+ 
+    scale_y_continuous(sec.axis = sec_axis(~./max(table(SeuratObject@meta.data$Prediction)),name="Probability Scores (violin)"))+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.position="right")+
+    labs(y="Number of Cells (bars)",title=paste("Prediction outcome", sep=""))
+  
+  p4 <- ggplot(SeuratObject@meta.data, aes(KLe, Diff, color= PredictionStatus))+ geom_point(size=.6)
+  
+  grid.arrange(p3, p4, nrow=2)
+  
+  dev.off()
+}
 
+CellTyper2 <- function(SeuratObject, testExpSet, model, priorLabels, outputFilename="plotpredictions"){
+  
+  library(caret)
+  library(randomForest)
+  library(tidyverse)
+  
+  if(!missing(SeuratObject)){
+    testExpSet <- t(as.matrix(SeuratObject@data))
+  }else{
+    print("Expression matrix is provided...")
+    testExpSet <- t(as.matrix(testExpSet))
+  }#Closes missing(SeuratObj)
+  colnames(testExpSet) <- make.names(colnames(testExpSet))
+  #Prepare Test Expression set
+  testsub <- testExpSet[,which(colnames(testExpSet) %in% model$finalModel$xNames)]
+  missingGenes <- model$finalModel$xNames[which(!model$finalModel$xNames %in% colnames(testExpSet))]
+  print(missingGenes)
+  missingGenes.df <- data.frame(matrix(0, ncol = length(missingGenes), nrow = length(rownames(testExpSet))))
+  colnames(missingGenes.df) <- missingGenes
+  TestData <- cbind(testsub, missingGenes.df)
+  TestData <- TestData[,model$finalModel$xNames]
+  cat("Number of Features (genes) to be considered is", length(colnames(testsub)), '\n', "Number of missing Features set to zero is", length(missingGenes), '\n', sep = ' ')
+  
+  rm(testsub, missingGenes, missingGenes.df)
+  gc()
+  #Predict
+  library(entropy)
+  testPred <- as.data.frame(predict(model, TestData, type = "prob"))
+  class_n <- length(model$finalModel$classes)
+  testPred$Diff <- apply(testPred, 1, function(x) max(x)-sort(x,partial=length(x)-1)[length(x)-1])
+  testPred$KLe <- apply(testPred[,which(!names(testPred) %in% c("Diff"))], 1, function(x) KL.empirical(y1 = as.numeric(x), y2 = rep(1/class_n, class_n)) )
+  testPred$BestVotesPercent <- apply(testPred[,which(!names(testPred) %in% c("Diff","KLe"))],1, function(x) max(x)  )
+  testPred$Prediction <- predict(model, TestData, type="raw")
+  #!!!
+  #Flag cell type prediction if Kullback-Leibler divergence value is higher than 0.5 OR the difference between the highest and the second highest percent vote (Diff) is higher than two time of random vote rate (2/class_n)  
+  testPred <- testPred %>% as.tibble() %>% mutate(Prediction = if_else( (KLe <= 0.25) | (Diff <= 2/class_n), "Undetermined", as.character(Prediction) )) %>% as.data.frame()
+  testPred <- testPred %>% as.tibble() %>% mutate(PredictionStatus = if_else( (KLe <= 0.25) | (Diff <= 2/class_n), "Undetermined", "Detected")) %>% as.data.frame()
+  #testPred <- testPred %>% as.tibble() %>% mutate(Prediction = ifelse( (KLe <= 0.5) | (Diff <= 2/class_n), "Unclassified", as.character(Prediction) )) %>% as.data.frame()
+  #@@@
+  
+  if(missing(priorLabels)){
+    print("Prior class labels are not provided!")
+    
+  }else{
+    #Provided prior class labels (priorLabels) has to be a dataframe with same rownames as input testExpSet with one column storing labels.
+    priorLabels <- as.data.frame(priorLabels)
+    colnames(priorLabels) <- c("Prior")
+    testPred <- cbind(testPred, priorLabels)
+    
+    confmat <- confusionMatrix(data = testPred$Prediction, reference = testPred$Prior)
+    print(confmat$table)
+    if(!missing(SeuratObject)){
+      attributes(SeuratObject)$confusionMatrix <- confmat$table
+    }else{
+      print("Prediction output is being exported ...")
+    }#Closes missing(SeuratObj)
+    #assign("ConfusionMatrix", confmat$table, envir=globalenv())
+  }
+  
+  if(!missing(SeuratObject)){
+    #testPred$BestVotesPercent <- bestScoreExtractor(testPred)
+    #testPred <- cbind(testPred,bestScoreExtractor(testPred))
+    
+    SeuratObject@meta.data <- SeuratObject@meta.data[,which(!colnames(SeuratObject@meta.data) %in% colnames(testPred))]
+    SeuratObject@meta.data <- cbind(SeuratObject@meta.data, testPred)
+    
+    PlotPredictions2(SeuratObject = SeuratObject, model = model, outputFilename = outputFilename)
+    
+    return(SeuratObject)
+  }else{
+    print("Prediction output is being exported ...")
+    rownames(testPred) <- rownames(testExpSet)
+    return(testPred)
+  }#Closes missing(SeuratObj)
+}#closes the function
