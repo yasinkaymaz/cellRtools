@@ -7,4 +7,4 @@ The goal of this project is to be able to determine major cell types of cell sam
 
 
 
-#### [Example Tutorial](Docs/tutorial_1.md)
+#### [Example Tutorial](tutorial_1.md)
