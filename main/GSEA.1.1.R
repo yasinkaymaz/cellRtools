@@ -8,6 +8,9 @@
 # whatsoever. Neither the Broad Institute nor MIT can be responsible for
 # its use, misuse, or functionality.
 
+#NOTE:
+
+#[http://software.broadinstitute.org/gsea/msigdb/download_file.jsp?filePath=/resources/software/GSEA-P-R.1.0.zip] (Rscript Download Link)
 
 # G S E A -- Gene Set Enrichment Analysis
 

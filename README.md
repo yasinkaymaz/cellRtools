@@ -17,6 +17,5 @@ The goal of this project is to be able to determine major cell types of cell sam
 
 #### Gene Set Enrichment Analysis
 
-This project is for providing a user friendly method to perform Gene Set Enrichment Analysis
-
-[http://software.broadinstitute.org/gsea/msigdb/download_file.jsp?filePath=/resources/software/GSEA-P-R.1.0.zip](Rscript Download Link)
+This project is for providing a user friendly method to perform Gene Set Enrichment Analysis between clusters (or subsets of cells in clusters). The main GSEA software has been adapted from http://software.broadinstitute.org/gsea/ and restored for compatibility with latest R distributions.
+ 
