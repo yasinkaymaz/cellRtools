@@ -727,7 +727,7 @@ CellTyperTrainer2 <- function(ExpressionData, CellLabels, run.name, do.splitTest
                                    head(colSums(model$finalModel$confusion),-1)))
   colnames(errorSize) <- c("ClassError","ClassTrainingSize")
   errorSize$CellTypeClass <- rownames(errorSize)
-  acc <- getTrainPerf(model)["TrainAccuracy"]*100
+  acc <- getTrainPerf(model)["TrainAccuracy"]*100# This is the mean accuracy of each fold at model$resample
   
   p1 <- ggplot(conf.mat, aes(Var1, Var2, fill=freq)) + geom_tile(color = "white")+
     scale_fill_gradient2(low = "white", high = "red", name="% Predictions")+

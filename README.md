@@ -6,3 +6,11 @@ This repository is a collection of analytical methods for single cell sequencing
 git clone https://github.com/yasinkaymaz/cellRtools.git
 ```
 
+### List of functions
+
+#### Cell Type Prediction
+
+The goal of this project is to be able to determine major cell types of cell samples in the single cell RNAseq (scRNAseq) datasets. Common methods for deciding type of the cells is often involve manually checking known tissue/cell specific gene expression levels. Automatized methods to determine cell types is currently lacking. Therefore, our effort is to develop a machine learning approach to predict cell labels using gene expression levels from scRNAseq datasets. This will allow researchers to find out existing cell types in their experimental outcomes and use these predictions to further fine tune the downstream analysis, such as marker gene selection, differential expression test, etc.
+
+
+ 
