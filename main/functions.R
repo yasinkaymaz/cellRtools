@@ -1,3 +1,9 @@
+#Todo:
+#1. implement test, validation, CV, accuracy
+#2. Find a way to best choose KLe*Diff threshold
+#3. Associate confidence with predictions. and label.
+
+
 library(here)
 
 RunGSEAforClusters <- function(SeuratObj, Cond1, Cond2, GeneSet=here('data/GeneSetDatabases/MousePath_GO_gmt.gmt'), outputDir=getwd(), ...){
@@ -451,9 +457,9 @@ PlotPredictions <- function(SeuratObject, model, save.pdf=T, outputFilename="plo
   conf.mat <- reshape2::melt(as.matrix(conf.mat)) %>% as.tibble() %>% group_by(Var1) %>%
     mutate(freq = 100*value/sum(value))
   
-  class_n = length(head(colSums(model$confusion),-1))
+  class_n = length(model$classes)
   
-  pdf(paste(outputFilename,".pdf",sep=""),width= 2*class_n, height = 2*class_n)
+  pdf(paste(outputFilename,".pdf",sep=""),width= 1.5*class_n, height = 1.5*class_n)
   
   
   require(gridExtra)
@@ -500,7 +506,7 @@ PlotPredictions <- function(SeuratObject, model, save.pdf=T, outputFilename="plo
     theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.position="right")+
     labs(y="Number of Cells (bars)",title=paste("Prediction outcome", sep=""))
   
-  p4 <- ggplot(SeuratObject@meta.data, aes(KLe, KLe*Diff, color= PredictionStatus))+ geom_point(size=.6)
+  p4 <- ggplot(SeuratObject@meta.data, aes(KLe, Diff, color= PredictionStatus))+ geom_point(size=.6)
   
   grid.arrange(p3, p4, nrow=2)
   
@@ -546,8 +552,8 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels, outputFilena
   testPred$Prediction <- predict(model, TestData, type="response")
   #!!!
   #Flag cell type prediction if Kullback-Leibler divergence value is higher than 0.5 OR the difference between the highest and the second highest percent vote (Diff) is higher than two time of random vote rate (2/class_n)  
-  testPred <- testPred %>% as.tibble() %>% mutate(Prediction = if_else( (KLe*Diff <= 0.5), "Undetermined", as.character(Prediction) )) %>% as.data.frame()
-  testPred <- testPred %>% as.tibble() %>% mutate(PredictionStatus = if_else( (KLe*Diff <= 0.5), "Undetermined", "Detected")) %>% as.data.frame()
+  testPred <- testPred %>% as.tibble() %>% mutate(Prediction = if_else( (KLe <= 0.25) | (Diff <= 2/class_n), "Undetermined", as.character(Prediction) )) %>% as.data.frame()
+  testPred <- testPred %>% as.tibble() %>% mutate(PredictionStatus = if_else( (KLe <= 0.25) | (Diff <= 2/class_n), "Undetermined", "Detected")) %>% as.data.frame()
  #testPred <- testPred %>% as.tibble() %>% mutate(Prediction = ifelse( (KLe <= 0.5) | (Diff <= 2/class_n), "Unclassified", as.character(Prediction) )) %>% as.data.frame()
   #@@@
   
