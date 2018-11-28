@@ -176,7 +176,7 @@ SummarizeGSEAoutputs <- function(GSEAoutputDir="./"){
   return(sig.GSreportsTable)
 }
 
-SeuratWrapper <- function(ExpData, ProjectLabel, NewMeta, Normalize=T, scale.only.var=T, PCs=20, dump.files=F){
+SeuratWrapper <- function(ExpData, ProjectLabel, NewMeta, Normalize=T, scale.only.var=T, PCs=20, perp=30, dump.files=F){
   
   SeuratObj <- CreateSeuratObject(raw.data = ExpData, project = ProjectLabel, min.genes = 500)
   
@@ -206,7 +206,7 @@ SeuratWrapper <- function(ExpData, ProjectLabel, NewMeta, Normalize=T, scale.onl
   
   SeuratObj <- FindClusters(SeuratObj, reduction.type = "pca", dims.use = 1:PCs, resolution = 1, print.output = FALSE, save.SNN = TRUE, force.recalc = T)
   
-  SeuratObj <- RunTSNE(SeuratObj, dims.use = 1:PCs, do.fast = TRUE,check_duplicates = FALSE)
+  SeuratObj <- RunTSNE(SeuratObj, dims.use = 1:PCs, do.fast = TRUE,check_duplicates = FALSE, perplexity=perp)
   
   pdf(paste(ProjectLabel,".plots.pdf",sep=""),width=8,height = 8)
   PCAPlot(SeuratObj, dim.1 = 1, dim.2 = 2)
