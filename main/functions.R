@@ -377,8 +377,8 @@ CellTyperTrainer2 <- function(ExpressionData, CellLabels, run.name, do.splitTest
   
   #10-fold Cross Validation
   train_control <- trainControl(method="cv", number=10, savePredictions = TRUE)
-  model <- train(CellType~., data=trainingData, trControl=train_control, method="rf", norm.votes = TRUE, importance=TRUE, proximity = TRUE, ntree=500, sampsize=c(table(trainingData$CellType)))
-
+  #model <- train(CellType~., data=trainingData, trControl=train_control, method="rf", norm.votes = TRUE, importance=TRUE, proximity = TRUE, ntree=500, sampsize=c(table(trainingData$CellType)))
+  model <- train(CellType~., data=trainingData, trControl=train_control, method="rf", norm.votes = TRUE, importance=TRUE, proximity = TRUE, ntree=500)
   
   if(improve == T){
     
