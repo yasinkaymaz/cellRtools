@@ -686,7 +686,8 @@ CellTyperTrainer <- function(ExpressionData, CellLabels, run.name, do.splitTest=
     toss_n = dim(rfvotes)[1]
     
     #While Median Best votes score overall is larger in the new iteration AND the number of inputs need to be tossed is larger %1 of all input data, then continue.
-    while (Bestscore$median >= currentscore && toss_n > round(0.01*dim(rfvotes)[1]) ){
+    #while (Bestscore$median >= currentscore && toss_n > round(0.01*dim(rfvotes)[1]) ){
+    while (round_n < 2 ){#run this only once...
       
       print(paste("Round number ",round_n))
       print(paste("Current score is", currentscore,". toss_n is", toss_n, ". Fractions is", round(0.01*dim(rfvotes)[1])))
