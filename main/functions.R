@@ -836,18 +836,22 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels, outputFilena
     print("Prior class labels are not provided!")
     
   }else{
-    #Provided prior class labels (priorLabels) has to be a dataframe with same rownames as input testExpSet with one column storing labels.
-    priorLabels <- as.data.frame(priorLabels)
-    colnames(priorLabels) <- c("Prior")
-    testPred <- cbind(testPred, priorLabels)
+    #Plot the crosscheck here:
+    #Crosscheck Predictions
+    library(tidyverse)
+    library(alluvial)
+    library(ggalluvial)
+    crx <- testPred %>% group_by(Prior, res.1, Intermediate, Prediction) %>% tally() %>% as.data.frame()
     
-    confmat <- confusionMatrix(data = testPred$Prediction, reference = testPred$Prior)
-    print(confmat$table)
-    if(!missing(SeuratObject)){
-      attributes(SeuratObject)$confusionMatrix <- confmat$table
-    }else{
-      print("Prediction output is being exported ...")
-    }#Closes missing(SeuratObj)
+    p5 <- ggplot(crx,aes(y = n, axis1 = Prior , axis2 = Prediction )) +
+      geom_alluvium(aes(fill = Prediction), width = 1/12) +
+      geom_stratum(width = 1/12, fill = "black", color = "grey") +
+      geom_label(stat = "stratum", label.strata = TRUE) +
+      scale_x_discrete(limits = c("Prior", "Clusters", "Int-Prediction", "Final-Prediction"), expand = c(.05, .05)) +
+      ggtitle("Predictions Cross-Check")
+    
+    save_plot(filename = paste(outputFilename,".prediction-crosscheck.pdf",sep=""),plot = p5, base_height = 1.2*class_n, base_width = 1.2*class_n)
+    
   }
   
   if(!missing(SeuratObject)){
