@@ -847,13 +847,13 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels, outputFilena
     library(tidyverse)
     library(alluvial)
     library(ggalluvial)
-    crx <- testPred %>% group_by(Prior, res.1, Intermediate, Prediction) %>% tally() %>% as.data.frame()
+    crx <- testPred %>% group_by(Prior, Intermediate, Prediction) %>% tally() %>% as.data.frame()
     
-    p5 <- ggplot(crx,aes(y = n, axis1 = Prior , axis2 = Prediction )) +
+    p5 <- ggplot(crx,aes(y = n, axis1 = Prior, axis2 = Intermediate, axis3 = Prediction )) +
       geom_alluvium(aes(fill = Prediction), width = 1/12) +
       geom_stratum(width = 1/12, fill = "black", color = "grey") +
       geom_label(stat = "stratum", label.strata = TRUE) +
-      scale_x_discrete(limits = c("Prior", "Clusters", "Int-Prediction", "Final-Prediction"), expand = c(.05, .05)) +
+      scale_x_discrete(limits = c("Prior", "Int-Prediction", "Final-Prediction"), expand = c(.05, .05)) +
       ggtitle("Predictions Cross-Check")
     
     save_plot(filename = paste(outputFilename,".prediction-crosscheck.pdf",sep=""),plot = p5, base_height = 1.2*class_n, base_width = 1.2*class_n)
