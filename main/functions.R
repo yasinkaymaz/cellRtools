@@ -856,7 +856,7 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels, outputFilena
       scale_x_discrete(limits = c("Prior", "Int-Prediction", "Final-Prediction"), expand = c(.05, .05)) +
       ggtitle("Predictions Cross-Check")
     
-    save_plot(filename = paste(outputFilename,".prediction-crosscheck.pdf",sep=""),plot = p5, base_height = 1.2*class_n, base_width = 1.2*class_n)
+    cowplot::save_plot(filename = paste(outputFilename,".prediction-crosscheck.pdf",sep=""),plot = p5, base_height = 1.2*class_n, base_width = 1.2*class_n)
     
   }
   
