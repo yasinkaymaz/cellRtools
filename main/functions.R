@@ -393,8 +393,9 @@ CellTyperTrainer2 <- function(ExpressionData, CellLabels, model.method="rf", run
   #k-fold Cross Validation
   train_control <- trainControl(method="cv", number=cv_k, savePredictions = TRUE)
   model <- train(CellType~., data=trainingData, trControl=train_control, method=model.method, norm.votes = TRUE, importance=TRUE, proximity = TRUE, ntree=500)
+  save(model, file=paste(run.name,".RF_model_notImproved.Robj", sep = ""))
   
-  if((improve.rf == T) & (model.method = "rf")){
+  if((improve.rf == T) & (model.method == "rf")){
     
     is.nan.data.frame <- function(x)
       do.call(cbind, lapply(x, is.nan))
@@ -664,6 +665,7 @@ CellTyperTrainer <- function(ExpressionData, CellLabels, run.name, do.splitTest=
   #Added: "sampsize=c(table(trainingData$CellType))". Revisit this later to make sure it is working as expected...
   rf <- randomForest(CellType~., data = trainingData, norm.votes = TRUE, importance=TRUE, proximity = TRUE, ntree=500, sampsize=c(table(trainingData$CellType)))
   print(rf)
+  save(rf, file=paste(run.name,".RF_model_notImproved.Robj", sep = ""))
   
   if(improve == T){
     is.nan.data.frame <- function(x)
