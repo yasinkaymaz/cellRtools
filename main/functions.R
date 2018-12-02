@@ -180,12 +180,16 @@ SummarizeGSEAoutputs <- function(GSEAoutputDir="./"){
   return(sig.GSreportsTable)
 }
 
-SeuratWrapper <- function(ExpData, ProjectLabel, NewMeta, Normalize=T, scale.only.var=T, PCs=20, perp=30, dump.files=F){
+SeuratWrapper <- function(ExpData, ProjectLabel, NewMeta, Normalize=T, suppressLog=F, scale.only.var=T, PCs=20, perp=30, dump.files=F){
   
   if(Normalize == TRUE){print("Assuming the input is in count ...")
     }else{
       print("Assuming the input is in TPM ...")
-    ExpData <- log1p(ExpData)
+      if(suppressLog == TRUE){
+        print("not taking log ...")
+      }else{
+        ExpData <- log1p(ExpData)
+      }
     }
   
   SeuratObj <- CreateSeuratObject(raw.data = ExpData, project = ProjectLabel, min.genes = 500)
