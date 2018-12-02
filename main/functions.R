@@ -471,32 +471,6 @@ CellTyperTrainer2 <- function(ExpressionData, CellLabels, model.method="rf", run
     
   }#closes the improve option
   
-  pdf(paste(run.name,".pdf",sep=""),width= 1.5*class_n, height = 1.5*class_n)
-  require(gridExtra)
-  errorSize <- as.data.frame(cbind(model$finalModel$confusion[,"class.error"],
-                                   head(colSums(model$finalModel$confusion),-1)))
-  colnames(errorSize) <- c("ClassError","ClassTrainingSize")
-  errorSize$CellTypeClass <- rownames(errorSize)
-  acc <- getTrainPerf(model)["TrainAccuracy"]*100# This is the mean accuracy of each fold at model$resample
-  
-  p1 <- ggplot(conf.mat, aes(Var1, Var2, fill=freq)) + geom_tile(color = "white")+
-    scale_fill_gradient2(low = "white", high = "red", name="% Predictions")+
-    theme(axis.text.x = element_text(angle = 90))+
-    scale_y_discrete(name ="Predicted Cell Types")+
-    scale_x_discrete(name ="Cell Types Classes")
-  
-  p2 <- ggplot(errorSize)  + 
-    geom_bar(aes(x=reorder(CellTypeClass,-ClassTrainingSize), y=ClassTrainingSize),stat="identity", fill="tan1", colour="sienna3")+
-    geom_point(aes(x=reorder(CellTypeClass,-ClassTrainingSize), y=ClassError*max(errorSize$ClassTrainingSize)),stat="identity",size=3)+
-    scale_y_continuous(sec.axis = sec_axis(~./max(errorSize$ClassTrainingSize),name="Class % Error rate (Dots)"))+
-    labs(y="Class Size in Training (Bars)",title=paste("Model Prediction Accuracy is ",round(acc,digits = 2),"%", sep=""))+
-    theme(axis.text.x = element_text(angle = 90,hjust = 1))+
-    scale_x_discrete(name ="Cell Type Classes")
-  
-  grid.arrange(p1, p2, nrow=2)
-  
-  dev.off()
-  
   save(model, file=paste(run.name,".RF_model.Robj",sep = ""))
   return(model)
 }
