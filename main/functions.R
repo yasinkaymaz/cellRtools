@@ -626,6 +626,116 @@ CellTyper2 <- function(SeuratObject, testExpSet, model, priorLabels, outputFilen
   }#Closes missing(SeuratObj)
 }#closes the function
 
+HTyper <- function(SeuratObject, testExpSet, models, priorLabels, outputFilename="plotpredictions"){
+  
+  #models is a list of of rf models
+  library(caret)
+  library(randomForest)
+  library(tidyverse)
+  
+  if(!missing(SeuratObject)){
+    testExpSet <- t(as.matrix(SeuratObject@data))
+  }else{
+    print("Expression matrix is provided...")
+    testExpSet <- t(as.matrix(testExpSet))
+  }#Closes missing(SeuratObj)
+  
+  colnames(testExpSet) <- make.names(colnames(testExpSet))
+  
+  
+  Htable <- data.frame(cells = rownames(testExpSet))
+  for (model in models){
+    modelname <- deparse(substitute(model))
+    
+    print(paste("Predicting with model",modelname,"...",sep = " "))
+    
+    #Prepare Test Expression set
+    testsub <- testExpSet[,which(colnames(testExpSet) %in% model$finalModel$xNames)]
+    missingGenes <- model$finalModel$xNames[which(!model$finalModel$xNames %in% colnames(testExpSet))]
+    print(model$finalModel$importance[missingGenes,])
+    
+    missingGenes.df <- data.frame(matrix(0, ncol = length(missingGenes), nrow = length(rownames(testExpSet))))
+    colnames(missingGenes.df) <- missingGenes
+    TestData <- cbind(testsub, missingGenes.df)
+    TestData <- TestData[,model$finalModel$xNames]
+    mmDGm <- mean(model$finalModel$importance[missingGenes,])
+    mmDGf <- mean(model$finalModel$importance[which(!model$finalModel$xNames %in% missingGenes),])
+    
+    cat("Number of Features (genes) to be considered is", length(colnames(testsub)), '\n', 
+        "Number of missing Features set to zero is", length(missingGenes), '\n', 
+        "Mean MeanDecreaseGini of missing genes is", mmDGm, '\n',
+        "Mean MeanDecreaseGini of Featured genes is", mmDGf, '\n',
+        sep = ' ')
+    
+    if((mmDGm > mmDGf)|(length(colnames(testsub)) < length(missingGenes) )){
+      warning("A significant portion of features are missing...")
+    }
+    
+    rm(testsub, missingGenes, missingGenes.df)
+    gc()
+    #Predict
+    library(entropy)
+    testPred <- as.data.frame(predict(model, TestData, type = "prob"))
+    class_n <- length(model$finalModel$classes)
+    testPred$Diff <- apply(testPred, 1, function(x) max(x)-sort(x,partial=length(x)-1)[length(x)-1])
+    testPred$KLe <- apply(testPred[,which(!names(testPred) %in% c("Diff"))], 1, function(x) KL.empirical(y1 = as.numeric(x), y2 = rep(1/class_n, class_n)) )
+    testPred$BestVotesPercent <- apply(testPred[,which(!names(testPred) %in% c("Diff","KLe"))],1, function(x) max(x)  )
+    testPred$Prediction <- predict(model, TestData, type="raw")
+    #Flag cell type prediction if Kullback-Leibler divergence value is higher than 0.5 OR the difference between the highest and the second highest percent vote (Diff) is higher than two time of random vote rate (2/class_n) 
+    testPred <- testPred %>% as.tibble() %>% mutate(Intermediate = Prediction ) %>% as.data.frame()
+    testPred <- testPred %>% as.tibble() %>% mutate(Prediction = if_else( (KLe <= 0.25) | (Diff <= 2/class_n), "Undetermined", as.character(Prediction) )) %>% as.data.frame()
+    testPred <- testPred %>% as.tibble() %>% mutate(PredictionStatus = if_else( (KLe <= 0.25) | (Diff <= 2/class_n), "Undetermined", "Detected")) %>% as.data.frame()
+    #testPred <- testPred %>% as.tibble() %>% mutate(Prediction = ifelse( (KLe <= 0.5) | (Diff <= 2/class_n), "Unclassified", as.character(Prediction) )) %>% as.data.frame()
+    
+    Htable <- data.frame(Htable, modelname = testPred$Prediction)
+    
+  }#closes models for loop
+
+    if(missing(priorLabels)){
+      print("Prior class labels are not provided!")
+      
+    }else{
+      #Provided prior class labels (priorLabels) has to be a dataframe with same rownames as input testExpSet with one column storing labels.
+      priorLabels <- as.data.frame(priorLabels)
+      colnames(priorLabels) <- c("Prior")
+      Htable <- cbind(priorLabels,Htable)
+      print(head(Htable))
+      #Plot the crosscheck here:
+      #Crosscheck Predictions
+      library(tidyverse)
+      library(alluvial)
+      library(ggalluvial)
+      Htable <- Htable %>% select(-cells) %>% droplevels()
+      print(head(Htable))
+      print(names(Htable))
+      crx <- Htable %>% group_by_at(vars(one_of(names(Htable)))) %>% tally() %>% as.data.frame()
+      print(head(crx))
+      
+      p5 <- ggplot(crx,aes_string(y = "n", axis1 = names(crx)[1], axis2 = names(crx)[2], axis3 = names(crx)[3], axis4 = names(crx)[4] )) +
+        geom_alluvium(aes_string(fill = names(crx)[4]), width = 1/12) +
+        geom_stratum(width = 1/12, fill = "black", color = "grey") +
+        geom_label(stat = "stratum", label.strata = TRUE) +
+        scale_x_discrete(limits = names(crx), expand = c(.05, .05)) +
+        ggtitle("Predictions Cross-Check")
+      
+      save_plot(filename = paste(outputFilename,".prediction-crosscheck.pdf",sep=""),plot = p5, base_height = 1.2*class_n, base_width = 1.2*class_n)
+    }#closes missing PriorLabels
+  
+  if(!missing(SeuratObject)){
+    #update predictions in the meta.data slot 
+    SeuratObject@meta.data <- SeuratObject@meta.data[,which(!colnames(SeuratObject@meta.data) %in% colnames(testPred))]
+    SeuratObject@meta.data <- cbind(SeuratObject@meta.data, testPred)
+    
+    PlotPredictions2(SeuratObject = SeuratObject, model = model, outputFilename = outputFilename)
+    
+    return(SeuratObject)
+    
+  }else{
+    print("Prediction output is being exported ...")
+    rownames(testPred) <- rownames(testExpSet)
+    return(testPred)
+  }#Closes missing(SeuratObj)
+}#closes the function
 
 ####################################Previous version functions###############################################
 CellTyperTrainer <- function(ExpressionData, CellLabels, run.name, do.splitTest=F, PCs, improve=T){
