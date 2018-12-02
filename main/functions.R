@@ -352,6 +352,7 @@ prepareDataset <- function(ExpressionData, CellLabels, run.name, PCs, featureGen
   train[indx] <- lapply(train[indx], function(x) as.numeric(as.character(x)))
  
   save(trainingData, file=paste(run.name,".trainingData.tmp.Rdata",sep = ""))
+  rm(trainingData)
   gc()
   
   if(missing(featureGeneSet)){
@@ -361,13 +362,15 @@ prepareDataset <- function(ExpressionData, CellLabels, run.name, PCs, featureGen
     genes <- make.names(featureGeneSet)
   }#closes.if.missing.featureset
   
-  load(paste(run.name,".trainingData.tmp.Rdata",sep = ""))
+  trainingData <- get(load(paste(run.name,".trainingData.tmp.Rdata",sep = "")))
   
-  pdf(paste(run.name,"_PCAplots.pdf",sep=""),width = 10,height = 10)
-  for (i in 1:PCs){
+  pcadata <- data.frame(pcatrain$x, CellType = trainingData$CellType)
+  
+  pdf(paste(run.name,"_PCAplots.pdf",sep=""),width = 20,height = 10)
+  for (i in 1:PCs-1){
     pci <- paste("PC",i,sep="")
     pcj <- paste("PC",i+1,sep="")
-    print(ggplot(trainingData, aes_string(x=pci, y=pcj, color="CellType"))+geom_point() )
+    print(ggplot(pcadata, aes_string(x=pci, y=pcj, color="CellType"))+geom_point() )
     par()}
   dev.off()
 
