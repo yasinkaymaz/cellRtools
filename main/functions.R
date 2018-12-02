@@ -316,15 +316,15 @@ selectGenes.best.loadings <- function(trainingExpData, pcs, run.name="gene.selec
   }
   
   print("Selecting the genes as best features...")
+ 
+  trainingData <- get(load(paste(run.name,".trainingData.tmp.Rdata",sep = "")))
+  pcadata <- data.frame(pcatrain$x, CellType = trainingData$CellType)
   load <- NULL
   topbotnames <- NULL
   TotalGenes <- 0
-  trainingData <- get(load(paste(run.name,".trainingData.tmp.Rdata",sep = "")))
-  pcadata <- data.frame(pcatrain$x, CellType = trainingData$CellType)
-
   pdf(paste(run.name,"_PCAplots.pdf",sep=""),width = 20,height = 10)
   pb <- txtProgressBar(min = 0, max = pcs, style = 3)
-  for(i in 1:pcs-1){
+  for(i in 1:(pcs-1)){
     orderedpcai <- pcatrain$rotation[order(abs(pcatrain$rotation[,i]),decreasing = TRUE),i]
     Gn <- round((pcs-i+1)*(num*2)/(pcs*(pcs+1)))
     TotalGenes = as.numeric(TotalGenes) + Gn
