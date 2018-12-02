@@ -297,7 +297,7 @@ FeaturePrep <- function(SeuratObj, gene.set, ScoreName){
   return(SeuratObj)
 }
 
-selectGenes.best.loadings <- function(trainingExpData, pcs, num, caption="Highest loading"){
+selectGenes.best.loadings <- function(trainingExpData, pcs, run.name="gene.select", num, caption="Highest loading"){
   #Second version:
   #p: pca object, pcs: number of PCs to include, num: number of genes from top and bottom
   #Weighted gene picking depending on PC number: Initial PCs give more genes.
@@ -308,8 +308,12 @@ selectGenes.best.loadings <- function(trainingExpData, pcs, num, caption="Highes
   trainingExpData <- trainingExpData[, apply(trainingExpData, 2, var) != 0]
   trainingExpData <- trainingExpData[, which(colVars(as.matrix(trainingExpData)) > 0.05)]
   
-  pcatrain <- prcomp(trainingExpData, center = FALSE, scale=FALSE, rank. = pcs)
-  save(pcatrain,file="PCA.train.data")
+  if(file.exists(paste(run.name,".train.prcomp.Rdata",sep=""))){
+    pcatrain <- get(load(paste(run.name,".train.prcomp.Rdata",sep="")))
+  }else{
+    pcatrain <- prcomp(trainingExpData, center = FALSE, scale=FALSE, rank. = pcs)
+    save(pcatrain,file=paste(run.name,".train.prcomp.Rdata",sep=""))
+  }
   
   print("Selecting the genes as best features...")
   load <- NULL
@@ -348,12 +352,11 @@ prepareDataset <- function(ExpressionData, CellLabels, run.name, PCs, featureGen
   train[indx] <- lapply(train[indx], function(x) as.numeric(as.character(x)))
  
   save(trainingData, file=paste(run.name,".trainingData.tmp.Rdata",sep = ""))
-  rm(trainingData, tsub)
   gc()
   
   if(missing(featureGeneSet)){
     #Perform PCA on data (optional: only on training portion) and select genes for features
-    genes <- as.character(selectGenes.best.loadings(trainingExpData = train, pcs = PCs, num = 2000))
+    genes <- as.character(selectGenes.best.loadings(trainingExpData = train, run.name = run.name, pcs = PCs, num = 2000))
   }else{
     genes <- make.names(featureGeneSet)
   }#closes.if.missing.featureset
