@@ -319,16 +319,25 @@ selectGenes.best.loadings <- function(trainingExpData, pcs, run.name="gene.selec
   load <- NULL
   topbotnames <- NULL
   TotalGenes <- 0
+  trainingData <- get(load(paste(run.name,".trainingData.tmp.Rdata",sep = "")))
+  pcadata <- data.frame(pcatrain$x, CellType = trainingData$CellType)
+
+  pdf(paste(run.name,"_PCAplots.pdf",sep=""),width = 20,height = 10)
   pb <- txtProgressBar(min = 0, max = pcs, style = 3)
-  for(i in 1:pcs){
+  for(i in 1:pcs-1){
     orderedpcai <- pcatrain$rotation[order(abs(pcatrain$rotation[,i]),decreasing = TRUE),i]
     Gn <- round((pcs-i+1)*(num*2)/(pcs*(pcs+1)))
     TotalGenes = as.numeric(TotalGenes) + Gn
     top <- data.frame(genes=names(head(orderedpcai,Gn)),bestgenes=head(orderedpcai,Gn))
     load <- rbind(load, top)
     setTxtProgressBar(pb,i)
+    pci <- paste("PC",i,sep="")
+    pcj <- paste("PC",i+1,sep="")
+    print(ggplot(pcadata, aes_string(x=pci, y=pcj, color="CellType"))+geom_point() )
+    par()
     cat("\n",'Picking the best genes from first', i,'PCs is completed.',"\n")
   }
+  dev.off()
   
   bestgenes <- unique(load$genes)
   return(bestgenes)
@@ -364,16 +373,6 @@ prepareDataset <- function(ExpressionData, CellLabels, run.name, PCs, featureGen
   
   trainingData <- get(load(paste(run.name,".trainingData.tmp.Rdata",sep = "")))
   
-  pcadata <- data.frame(pcatrain$x, CellType = trainingData$CellType)
-  
-  pdf(paste(run.name,"_PCAplots.pdf",sep=""),width = 20,height = 10)
-  for (i in 1:PCs-1){
-    pci <- paste("PC",i,sep="")
-    pcj <- paste("PC",i+1,sep="")
-    print(ggplot(pcadata, aes_string(x=pci, y=pcj, color="CellType"))+geom_point() )
-    par()}
-  dev.off()
-
   trainingData.postPCA <- droplevels(trainingData[,c(genes,"CellType")])
   
   save(trainingData.postPCA, file=paste(run.name, ".trainingData.postPCA.data", sep = ""))
