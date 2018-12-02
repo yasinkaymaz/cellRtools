@@ -5,6 +5,10 @@
 #4. Limit recursive model improvement to only one cycle in order to prevent overfitting. or instead implement a doublet detection to filter out bad cell inputs from the training data.
 
 library(here)
+library(Seurat)
+library(Matrix)
+library(dplyr)
+library(tidyverse)
 
 RunGSEAforClusters <- function(SeuratObj, Cond1, Cond2, GeneSet=here('data/GeneSetDatabases/MousePath_GO_gmt.gmt'), outputDir=getwd(), ...){
 
@@ -611,9 +615,9 @@ CellTyper2 <- function(SeuratObject, testExpSet, model, priorLabels, outputFilen
     library(tidyverse)
     library(alluvial)
     library(ggalluvial)
-    crx <- testPred %>% group_by(Prior, res.1, Intermediate, Prediction) %>% tally() %>% as.data.frame()
+    crx <- testPred %>% group_by(Prior, Intermediate, Prediction) %>% tally() %>% as.data.frame()
     
-    p5 <- ggplot(crx,aes(y = n, axis1 = Prior , axis2 = Prediction )) +
+    p5 <- ggplot(crx,aes(y = n, axis1 = Prior, axis2 = Intermediate, axis3 = Prediction )) +
       geom_alluvium(aes(fill = Prediction), width = 1/12) +
       geom_stratum(width = 1/12, fill = "black", color = "grey") +
       geom_label(stat = "stratum", label.strata = TRUE) +
