@@ -659,7 +659,7 @@ CellTyperTrainer <- function(ExpressionData, CellLabels, run.name, do.splitTest=
     trainingData <- get(load(paste(run.name,".trainingData.postPCA.data",sep = "")))
   }else{
     print("creating the training data...")
-    trainingData <- prepareDataset(ExpressionData = ExpressionData, CellLabels = CellLabels, do.splitTest = do.splitTest, PCs = PCs, run.name = run.name)
+    trainingData <- prepareDataset(ExpressionData = ExpressionData, CellLabels = CellLabels, PCs = PCs, run.name = run.name)
   }
   
   #Added: "sampsize=c(table(trainingData$CellType))". Revisit this later to make sure it is working as expected...
