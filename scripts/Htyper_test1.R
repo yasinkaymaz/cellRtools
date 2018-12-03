@@ -19,8 +19,8 @@ zeisel.rank4.rf <- get(load("/n/home13/yasinkaymaz/LabSpace/testdata/GEO/Zeisel2
 models.list <- list(zeisel.rank1.rf,zeisel.rank2.rf,zeisel.rank3.rf,zeisel.rank4.rf)
 
 
-
-#Saunders pure populations for testing
+setwd("~/LabSpace/testdata/GEO/Saunders/")
+#Saunders pure populations for testing Positive controls
 datafiles <- list.files(pattern="H_1stRound_CrossTissue_.*txt.gz$")
 metafiles <- list.files(pattern="H_1stRound_CrossTissue_.*.RDS$")
 
@@ -37,6 +37,8 @@ for(i in 1:length(datafiles)){
   seuratobj <- HTyper(SeuratObject = seuratobj, models = models.list, priorLabels = seuratobj@meta.data$Region, outputFilename = paste(region,".rf.predictions.w-HM",sep = ""))
   remove(seuratobj)
 }
+
+
 
 
 # Testing models on real mixture datasets
