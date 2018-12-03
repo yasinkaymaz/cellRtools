@@ -1061,7 +1061,7 @@ HTyper <- function(SeuratObject, testExpSet, models, priorLabels, outputFilename
     print(head(crx))
     
     p5 <- ggplot(crx,aes_string(y = "n", axis1 = names(crx)[1], axis2 = names(crx)[2], axis3 = names(crx)[3], axis4 = names(crx)[4], axis5 = names(crx)[5] )) +
-      geom_alluvium(aes_string(fill = names(crx)[4]), width = 1/12) +
+      geom_alluvium(aes_string(fill = names(crx)[5]), width = 1/12) +
       geom_stratum(width = 1/12, fill = "black", color = "red") +
       geom_label(stat = "stratum", label.strata = TRUE) +
       scale_x_discrete(limits = names(crx), expand = c(.05, .05)) +
