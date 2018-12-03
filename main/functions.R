@@ -1068,6 +1068,7 @@ HTyper <- function(SeuratObject, testExpSet, models, priorLabels, outputFilename
       ggtitle("Predictions Cross-Check")
     
     save_plot(filename = paste(outputFilename,".prediction-crosscheck.pdf",sep=""),plot = p5, base_height = 1.2*class_n, base_width = 1.2*class_n)
+    save(crx, file=paste(outputFilename,".prediction-crosscheck.htable.Rdata",sep=""))
   }#closes missing PriorLabels
   
   if(!missing(SeuratObject)){
