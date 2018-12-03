@@ -6,9 +6,14 @@ library(dplyr)
 library(tidyverse)
 
 zeisel.rank1.rf <- get(load("/n/home13/yasinkaymaz/LabSpace/testdata/GEO/Zeisel2018/zeisel.rank1.rf.RF_model.Robj"))
-zeisel.rank3.rf <- get(load("/n/home13/yasinkaymaz/LabSpace/testdata/GEO/Zeisel2018/zeisel.rank2.rf.RF_model.Robj"))
+zeisel.rank2.rf <- get(load("/n/home13/yasinkaymaz/LabSpace/testdata/GEO/Zeisel2018/zeisel.rank2.rf.RF_model.Robj"))
 zeisel.rank3.rf <- get(load("/n/home13/yasinkaymaz/LabSpace/testdata/GEO/Zeisel2018/zeisel.rank3.rf.RF_model.Robj"))
 zeisel.rank4.rf <- get(load("/n/home13/yasinkaymaz/LabSpace/testdata/GEO/Zeisel2018/zeisel.rank4.rf.RF_model.Robj"))
+
+#zeisel.rank1.rfcv <- get(load("~/codes/test/RF/zeisel.rank1.rfcv.RF_model_notImproved.Robj"))
+#zeisel.rank2.rfcv <- get(load("~/codes/test/RF/zeisel.rank2.rfcv.RF_model_notImproved.Robj"))
+#zeisel.rank3.rfcv <- get(load("~/codes/test/RF/zeisel.rank3.rfcv.RF_model_notImproved.Robj"))
+#zeisel.rank4.rf <- get(load("~/codes/test/RF/redo_rank4/zeisel.rank4.rfcv.RF_model_notImproved.Robj"))
 
 models.list <- list(zeisel.rank1.rf,zeisel.rank2.rf,zeisel.rank3.rf,zeisel.rank4.rf)
 
