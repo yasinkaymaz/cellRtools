@@ -976,7 +976,6 @@ CellTyper <- function(SeuratObject, testExpSet, model, priorLabels, outputFilena
   }#Closes missing(SeuratObj)
 }#closes the function
 
-
 HTyper <- function(SeuratObject, testExpSet, models, priorLabels, outputFilename="plotpredictions"){
   
   #models is a list of of rf models
@@ -1030,7 +1029,7 @@ HTyper <- function(SeuratObject, testExpSet, models, priorLabels, outputFilename
     testPred$Diff <- apply(testPred, 1, function(x) max(x)-sort(x,partial=length(x)-1)[length(x)-1])
     testPred$KLe <- apply(testPred[,which(!names(testPred) %in% c("Diff"))], 1, function(x) KL.empirical(y1 = as.numeric(x), y2 = rep(1/class_n, class_n)) )
     testPred$BestVotesPercent <- apply(testPred[,which(!names(testPred) %in% c("Diff","KLe"))],1, function(x) max(x)  )
-    testPred$Prediction <- predict(model, TestData, type="raw")
+    testPred$Prediction <- predict(model, TestData, type="response")
     #Flag cell type prediction if Kullback-Leibler divergence value is higher than 0.5 OR the difference between the highest and the second highest percent vote (Diff) is higher than two time of random vote rate (2/class_n) 
     testPred <- testPred %>% as.tibble() %>% mutate(Intermediate = Prediction ) %>% as.data.frame()
     testPred <- testPred %>% as.tibble() %>% mutate(Prediction = if_else( (KLe <= 0.25) | (Diff <= 2/class_n), "Undetermined", as.character(Prediction) )) %>% as.data.frame()
@@ -1076,7 +1075,7 @@ HTyper <- function(SeuratObject, testExpSet, models, priorLabels, outputFilename
     SeuratObject@meta.data <- SeuratObject@meta.data[,which(!colnames(SeuratObject@meta.data) %in% colnames(testPred))]
     SeuratObject@meta.data <- cbind(SeuratObject@meta.data, testPred)
     
-    PlotPredictions2(SeuratObject = SeuratObject, model = model, outputFilename = outputFilename)
+    PlotPredictions(SeuratObject = SeuratObject, model = model, outputFilename = outputFilename)
     
     return(SeuratObject)
     
