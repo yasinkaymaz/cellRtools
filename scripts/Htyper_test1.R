@@ -4,6 +4,7 @@ library(Seurat)
 library(Matrix)
 library(dplyr)
 library(tidyverse)
+library(DropSeq.util)
 
 zeisel.rank1.rf <- get(load("/n/home13/yasinkaymaz/LabSpace/testdata/GEO/Zeisel2018/zeisel.rank1.rf.RF_model.Robj"))
 zeisel.rank2.rf <- get(load("/n/home13/yasinkaymaz/LabSpace/testdata/GEO/Zeisel2018/zeisel.rank2.rf.RF_model.Robj"))
