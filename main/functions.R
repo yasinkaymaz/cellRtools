@@ -211,7 +211,7 @@ SeuratWrapper <- function(ExpData, ProjectLabel, NewMeta, Normalize=T, suppressL
   }
   
   if(!missing(NewMeta)){
-    SeuratObj <- AddMetaData(SeuratObj, NewMeta)    
+    SeuratObj <- AddMetaData(SeuratObj, NewMeta[rownames(SeuratObj@meta.data),])    
   }else{
     print("No new meta file is provided. Skipping...")
   }
