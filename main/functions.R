@@ -645,9 +645,9 @@ HTyper <- function(SeuratObject, testExpSet, models, priorLabels, outputFilename
   colnames(testExpSet) <- make.names(colnames(testExpSet))
   
   Htable <- data.frame(cells = rownames(testExpSet))
+  
   for (model in models){
     modelname <- var_as_string(model)
-    
     print(paste("Predicting with model",modelname,"...",sep = " "))
     
     #Prepare Test Expression set
@@ -668,9 +668,9 @@ HTyper <- function(SeuratObject, testExpSet, models, priorLabels, outputFilename
         "Mean MeanDecreaseGini of Featured genes is", mmDGf, '\n',
         sep = ' ')
     
-    if((mmDGm > mmDGf)|(length(colnames(testsub)) < length(missingGenes) )){
-      warning("A significant portion of features are missing...")
-    }
+    #if((mmDGm > mmDGf)|(length(colnames(testsub)) < length(missingGenes) )){
+    #  warning("A significant portion of features are missing...")
+    #}
     
     rm(testsub, missingGenes, missingGenes.df)
     gc()
