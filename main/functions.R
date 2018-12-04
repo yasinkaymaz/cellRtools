@@ -485,7 +485,9 @@ PlotPredictions2 <- function(SeuratObject, model, priorLabels, outputFilename="p
   acc <- getTrainPerf(model)["TrainAccuracy"]*100
   di <- round(sqrt(class_n),digits = 0)+1
   
-  p1 <- ggplot(conf.mat, aes(Var1, Var2, fill=freq)) + geom_tile(color = "white")+
+  p1 <- ggplot(conf.mat, aes(Var1, Var2, fill=freq)) + 
+    geom_tile(color = "white")+
+    coord_equal()+
     scale_fill_gradient2(low = "white", high = "red", name="% Predictions")+
     theme(axis.text.x = element_text(angle = 90))+
     scale_y_discrete(name ="Predicted Cell Types")+
@@ -738,6 +740,22 @@ HTyper2 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilenam
   }#Closes missing(SeuratObj)
 }#closes the function
 
+
+RecursiveTrainer <- function(trainingData, model.method="rf", run.name, cv_k=5){
+  library(randomForest)
+  library(rfUtilities)
+  library(tidyverse)
+  library(caret)
+  
+  #k-fold Cross Validation
+  #train_control <- trainControl(method="cv", number=cv_k, savePredictions = TRUE)
+  model <- train(CellType~., data=trainingData, method=model.method, norm.votes = TRUE, importance=TRUE, proximity = TRUE, ntree=500)
+
+  save(model, file=paste(run.name,".RFrec_model.Robj", sep = ""))
+  
+  return(model)
+}
+
 ####################################Previous version functions###############################################
 CellTyperTrainer <- function(ExpressionData, CellLabels, run.name, do.splitTest=F, PCs, improve=T){
   library(randomForest)
@@ -845,7 +863,9 @@ PlotPredictions <- function(SeuratObject, model, save.pdf=T, outputFilename="plo
   
   require(gridExtra)
   
-  p1 <- ggplot(conf.mat, aes(Var1, Var2, fill=freq)) + geom_tile(color = "white")+
+  p1 <- ggplot(conf.mat, aes(Var1, Var2, fill=freq)) + 
+    geom_tile(color = "white")+
+    coord_equal()+
     scale_fill_gradient2(low = "white", high = "red", name="% Predictions")+
     theme(axis.text.x = element_text(angle = 90))+
     scale_y_discrete(name ="Predicted Cell Types")+
