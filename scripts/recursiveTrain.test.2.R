@@ -1,0 +1,12 @@
+.libPaths("~/biotools/Rlibs")
+source("~/codes/cellRtools/main/functions.R")
+library(Seurat)
+library(Matrix)
+library(dplyr)
+library(tidyverse)
+library(DropSeq.util)
+
+zeisel.rank2.rfcv <- get(load("~/codes/test/RF/zeisel.rank2.rfcv.RF_model_notImproved.Robj"))
+zeisel.rank2.sub <- get(load("~/LabSpace/testdata/GEO/Zeisel2018/zeisel.rank2.sub.seurat.Robj"))
+traininData.mode2 <- trainPrep(model = zeisel.rank2.rf, modeSeurat=zeisel.rank2.sub,RankLabellist=c("TaxonomyRank1","TaxonomyRank2"))
+zmode2 <- RecursiveTrainer(trainingData = traininData.mode2, run.name="z.modeL2")
