@@ -1032,8 +1032,8 @@ HTyper <- function(SeuratObject, testExpSet, models, priorLabels, outputFilename
     testPred$Prediction <- predict(model, TestData, type="response")
     #Flag cell type prediction if Kullback-Leibler divergence value is higher than 0.5 OR the difference between the highest and the second highest percent vote (Diff) is higher than two time of random vote rate (2/class_n) 
     testPred <- testPred %>% as.tibble() %>% mutate(Intermediate = Prediction ) %>% as.data.frame()
-    testPred <- testPred %>% as.tibble() %>% mutate(Prediction = if_else( (KLe <= 0.25) | (Diff <= 2/class_n), "Undetermined", as.character(Prediction) )) %>% as.data.frame()
-    testPred <- testPred %>% as.tibble() %>% mutate(PredictionStatus = if_else( (KLe <= 0.25) | (Diff <= 2/class_n), "Undetermined", "Detected")) %>% as.data.frame()
+    testPred <- testPred %>% as.tibble() %>% mutate(Prediction = if_else( (KLe <= 1/class_n) | (Diff <= 2/class_n), "Undetermined", as.character(Prediction) )) %>% as.data.frame()
+    testPred <- testPred %>% as.tibble() %>% mutate(PredictionStatus = if_else( (KLe <= 1/class_n) | (Diff <= 2/class_n), "Undetermined", "Detected")) %>% as.data.frame()
     #testPred <- testPred %>% as.tibble() %>% mutate(Prediction = ifelse( (KLe <= 0.5) | (Diff <= 2/class_n), "Unclassified", as.character(Prediction) )) %>% as.data.frame()
     
     Htable <- data.frame(Htable, modelname = testPred$Prediction)
