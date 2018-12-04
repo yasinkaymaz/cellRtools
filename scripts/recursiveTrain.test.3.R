@@ -8,5 +8,5 @@ library(DropSeq.util)
 
 zeisel.rank3.rfcv <- get(load("~/codes/test/RF/zeisel.rank3.rfcv.RF_model_notImproved.Robj"))
 zeisel.rank3.sub <- get(load("~/LabSpace/testdata/GEO/Zeisel2018/zeisel.rank3.sub.seurat.Robj"))
-traininData.mode3 <- trainPrep(model = zeisel.rank3.rf, modeSeurat=zeisel.rank3.sub, RankLabellist=c("TaxonomyRank1","TaxonomyRank2","TaxonomyRank3"))
+traininData.mode3 <- trainPrep(model = zeisel.rank3.rfcv, modeSeurat=zeisel.rank3.sub, RankLabellist=c("TaxonomyRank1","TaxonomyRank2","TaxonomyRank3"))
 zmode3 <- RecursiveTrainer(trainingData = traininData.mode3, run.name="z.modeL3")
