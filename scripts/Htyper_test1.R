@@ -19,24 +19,6 @@ zeisel.rank4.rf <- get(load("/n/home13/yasinkaymaz/LabSpace/testdata/GEO/Zeisel2
 models.list <- list(zeisel.rank1.rf,zeisel.rank2.rf,zeisel.rank3.rf,zeisel.rank4.rf)
 
 
-setwd("~/LabSpace/testdata/GEO/Saunders/")
-#Saunders pure populations for testing Positive controls
-# datafiles <- list.files(pattern="H_1stRound_CrossTissue_.*txt.gz$")
-# metafiles <- list.files(pattern="H_1stRound_CrossTissue_.*.RDS$")
-#
-# for(i in 1:length(datafiles)){
-#   region <- strsplit(datafiles[i],split = "_")[[1]][4]
-#   print(region)
-#   data <- loadSparseDge(datafiles[i])
-#   print(dim(data))
-#   meta <- readRDS(metafiles[i])
-#   print(dim(meta))
-#   meta$Region <- region
-#   print(head(meta))
-#   seuratobj <- SeuratWrapper(ExpData = data, ProjectLabel = region, NewMeta = meta, Normalize = T, scale.only.var = T, PCs = 20, dump.files = F)
-#   seuratobj <- HTyper(SeuratObject = seuratobj, models = models.list, priorLabels = seuratobj@meta.data$Region, outputFilename = paste(region,".rf.predictions.w-HM",sep = ""))
-#   remove(seuratobj)
-# }
 
 zeisel5000subsampled <- get(load("~/codes/test/RF/HT_tests/zeisel5000subsampled.seurat.Robj"))
 zeisel5000subsampled <- HTyper(SeuratObject = zeisel5000subsampled, models = models.list, priorLabels = zeisel5000subsampled@meta.data$TaxonomyRank4, outputFilename = paste("zeisel5000subsampled",".rf.predictions.w-HM",sep = ""))
