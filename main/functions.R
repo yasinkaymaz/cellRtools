@@ -753,7 +753,7 @@ trainPrep <- function(model=model, modeSeurat, RankLabellist ){
   trainingData <- as.data.frame(t(as.data.frame(as.matrix(modeSeurat@data))))
   #It is important to replace '-' with '.' in the names, otherwise, th rf function will throw error: 'Error in eval(predvars, data, env) : object 'RP11-206L10.2' not found'
   names(trainingData) <- make.names(names(trainingData))
-  trainingData <- cbind(trainingData[,features], R1.LR2)
+  trainingData <- cbind(trainingData[,features], RLR)
   #Convert categorical variables to factors, otherwise, it will throw error: 'Error in y - ymean : non-numeric argument to binary operator'
   trainingData$CellType <- factor(trainingData$CellType)
   gc()
