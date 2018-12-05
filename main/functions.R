@@ -741,16 +741,15 @@ HTyper2 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilenam
 }#closes the function
 
 
-trainPrep <- function(model=model, modeSeurat, RankLabellist ){
+trainPrep <- function(model, modeSeurat, RankLabellist ){
   imp <- as.data.frame(model$finalModel$importance)
   features <- rownames(head(imp[order(imp$MeanDecreaseGini, decreasing=T),],200))
   cells <- rownames(model$finalModel$votes)
-  RLR <- modeSeurat@meta.data[cells,RankLabellist]
+  RLR <- modeSeurat@meta.data[,RankLabellist]
   colns <- NULL;for(i in 1:(length(RankLabellist)-1 ) ) {colns <- c(colns,c(paste("R",i,sep="")))}
   print(colns)  
   colnames(RLR) <- c(colns,"CellType")
-  
-  trainingData <- as.data.frame(t(as.data.frame(as.matrix(modeSeurat@data))))
+  trainingData <- as.data.frame(t(as.matrix(modeSeurat@data)))
   #It is important to replace '-' with '.' in the names, otherwise, th rf function will throw error: 'Error in eval(predvars, data, env) : object 'RP11-206L10.2' not found'
   names(trainingData) <- make.names(names(trainingData))
   trainingData <- cbind(trainingData[,features], RLR)
