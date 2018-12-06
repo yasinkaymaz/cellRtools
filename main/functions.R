@@ -802,7 +802,7 @@ HTyper22 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilena
     
     colnames(testPred) <- paste(modelname, names(testPred),sep = ".")
     
-    Htable <- data.frame(Htable, modelname = testPred[,  paste(modelname,"Prediction",sep = ".'")])
+    Htable <- data.frame(Htable, modelname = testPred[,  paste(modelname,"Prediction",sep = ".")])
     
   }#closes models for loop
   
