@@ -749,7 +749,7 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
   if(missing(taxTable)){
     stop("Please provide a proper taxanomy table as a dataframe with 'taxTable' ... exiting!")
   }else{
-    taxtable <- read.delim(taxTable, header=F)
+    taxtable <- taxTable
   }
   
   if(!missing(SeuratObject)){
@@ -813,7 +813,7 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
     i=i+1
   }#closes models for loop
   
-  ConditionalProbTable <- NULL
+  ConditionalProbTable <- data.frame()
   leafNames <- NULL
   #For each leaf:
   for(j in 1:dim(taxtable)[1]){
@@ -830,7 +830,7 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
   }
   colnames(ConditionalProbTable) <- leafNames
   ConditionalProbTable$FinalBestProb <- apply(ConditionalProbTable, 1, function(x) max(x) )
-  ConditionalProbTable$FinalPrediction <- apply(ConditionalProbTable[,which(!names(ConditionalProbTable) %in% c("FinalBestProb"))], 1, function(x) which(x == max(x)) )
+  ConditionalProbTable$FinalPrediction <- apply(ConditionalProbTable[,which(!colnames(ConditionalProbTable) %in% c("FinalBestProb"))], 1, function(x) which(x == max(x)) )
   
   if(missing(priorLabels)){
     print("Prior class labels are not provided!")
