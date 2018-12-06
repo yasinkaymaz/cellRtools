@@ -740,6 +740,23 @@ HTyper2 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilenam
   }#Closes missing(SeuratObj)
 }#closes the function
 
+PlotPredictions22 <- function(SeuratObject, outputFilename="plotpredictions"){
+  
+  #Prediction Performance
+  p3 <- ggplot(data=SeuratObject@meta.data)+
+    geom_histogram(aes(x=FinalPrediction,fill=FinalPrediction),stat = "count")+
+    geom_violin(aes(x=FinalPrediction,y=FinalBestProb*max(table(SeuratObject@meta.data$FinalPrediction)),fill=FinalPrediction))+ 
+    scale_y_continuous(sec.axis = sec_axis(~./max(table(SeuratObject@meta.data$FinalPrediction)),name="Probability Scores (violin)"))+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.position="right")+
+    labs(y="Number of Cells (bars)",title=paste("Prediction outcome", sep=""))
+  
+  p4 <- TSNEPlot(SeuratObject, group.by="FinalPrediction",do.label=T, do.return = T)
+  
+  p3p4 <- cowplot::plot_grid(p3,p4, ncol = 1, nrow=2)
+  save_plot(filename = paste(outputFilename,".prediction-stats.pdf",sep=""),plot = p3p4,base_height = 12, base_width = 16)
+  
+}
+
 HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, outputFilename="plotpredictions"){
   
   #models is a list of of rf models
@@ -833,7 +850,7 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
   ConditionalProbTable$FinalBestProb <- apply(ConditionalProbTable, 1, function(x) max(x) )
   ConditionalProbTable$FinalPrediction <- colnames(ConditionalProbTable[,which(!colnames(ConditionalProbTable) %in% c("FinalBestProb"))])[apply(ConditionalProbTable[,which(!colnames(ConditionalProbTable) %in% c("FinalBestProb"))],1,which.max)]
   
-  Htable <- cbind(Htable, FinalPrediction = ConditionalProbTable$FinalPrediction)
+  Htable$FinalPrediction <- ConditionalProbTable$FinalPrediction
   
   if(missing(priorLabels)){
     print("Prior class labels are not provided!")
@@ -871,7 +888,7 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
     SeuratObject@meta.data <- SeuratObject@meta.data[,which(!colnames(SeuratObject@meta.data) %in% colnames(ConditionalProbTable))]
     SeuratObject@meta.data <- cbind(SeuratObject@meta.data, ConditionalProbTable)
     
-    #PlotPredictions2(SeuratObject = SeuratObject, model = model, outputFilename = outputFilename)
+    PlotPredictions22(SeuratObject = SeuratObject, outputFilename = outputFilename)
     
     return(SeuratObject)
     
