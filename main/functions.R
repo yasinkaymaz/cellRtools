@@ -841,7 +841,7 @@ HTyper22 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilena
     SeuratObject@meta.data <- SeuratObject@meta.data[,which(!colnames(SeuratObject@meta.data) %in% colnames(testPred))]
     SeuratObject@meta.data <- cbind(SeuratObject@meta.data, testPred)
     
-    PlotPredictions2(SeuratObject = SeuratObject, model = model, outputFilename = outputFilename)
+    #PlotPredictions2(SeuratObject = SeuratObject, model = model, outputFilename = outputFilename)
     
     return(SeuratObject)
     
