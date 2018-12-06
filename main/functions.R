@@ -827,7 +827,7 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
   leafNames <- NULL
   #For each leaf:
   for(j in 1:dim(taxtable)[1]){
-    leafName <- paste(taxtable[j,dim(taxtable)[2]], ".prod",sep = "")
+    leafName <- paste(taxtable[j,dim(taxtable)[2]],sep = "")
     print(leafName)
     #Calculate the Conditional Probabilities
     nodeNames <- NULL
