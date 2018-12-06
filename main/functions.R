@@ -813,7 +813,7 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
     i=i+1
   }#closes models for loop
   
-  ConditionalProbTable <- data.frame()
+  ConditionalProbTable <- data.frame(cells = rownames(testExpSet))
   leafNames <- NULL
   #For each leaf:
   for(j in 1:dim(taxtable)[1]){
