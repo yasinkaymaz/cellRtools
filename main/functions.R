@@ -829,8 +829,8 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
     leafNames <- c(leafNames, leafName)
   }
   colnames(ConditionalProbTable) <- leafNames
-  ConditionalProbTable$FinalBestProb <- apply(ConditionalProbTable,1, function(x) max(x) )
-  ConditionalProbTable$FinalPrediction <- apply(ConditionalProbTable[,which(!names(ConditionalProbTable) %in% c("FinalBestProb"))],1,which.max)
+  ConditionalProbTable$FinalBestProb <- apply(ConditionalProbTable, 1, function(x) max(x) )
+  ConditionalProbTable$FinalPrediction <- apply(ConditionalProbTable[,which(!names(ConditionalProbTable) %in% c("FinalBestProb"))], 1, function(x) which(x == max(x)) )
   
   if(missing(priorLabels)){
     print("Prior class labels are not provided!")
