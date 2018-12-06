@@ -843,8 +843,7 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
   ConditionalProbTable$FinalPrediction <- colnames(ConditionalProbTable[,which(!colnames(ConditionalProbTable) %in% c("FinalBestProb"))])[apply(ConditionalProbTable[,which(!colnames(ConditionalProbTable) %in% c("FinalBestProb"))],1,which.max)]
   
   Htable$FinalPrediction <- ConditionalProbTable$FinalPrediction
-  print(head(Htable))
-  
+
   if(missing(priorLabels)){print("Prior class labels are not provided!")}else{
     #Provided prior class labels (priorLabels) has to be a dataframe with same rownames as input testExpSet with one column storing labels.
     priorLabels <- as.data.frame(priorLabels)
@@ -861,15 +860,28 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
     print(names(Htable))
     crx <- Htable %>% group_by_at(vars(one_of(names(Htable)))) %>% tally() %>% as.data.frame()
     print(head(crx))
+    crx.f <- crx %>% mutate(freq = n*100 / sum(n)) %>% filter(freq > 1)
     
-    p5 <- ggplot(crx,aes_string(y = "n", axis1 = names(crx)[1], axis2 = names(crx)[2], axis3 = names(crx)[3], axis4 = names(crx)[4], axis5 = names(crx)[5], axis5 = names(crx)[6] )) +
+    p5 <- ggplot(crx,aes_string(y = "n", axis1 = names(crx)[1], axis2 = names(crx)[2], axis3 = names(crx)[3], axis4 = names(crx)[4], axis5 = names(crx)[5], axis6 = names(crx)[6] )) +
       geom_alluvium(aes_string(fill = names(crx)[6]), width = 1/12) +
       geom_stratum(width = 1/12, fill = "black", color = "red") +
       geom_label(stat = "stratum", label.strata = TRUE) +
-      scale_x_discrete(limits = names(crx), expand = c(.05, .05)) +
+      scale_x_discrete(limits = c("PriorLabels","Zeisel.Tax.Rank1","Zeisel.Tax.Rank2","Zeisel.Tax.Rank3","Zeisel.Tax.Rank4","FinalPrediction"), expand = c(.05, .05)) +
       ggtitle("Predictions Cross-Check")
     
-    save_plot(filename = paste(outputFilename,".prediction-crosscheck.pdf",sep=""),plot = p5, base_height = 1.2*class_n, base_width = 1.2*class_n)
+    p6 <- ggplot(crx.f,aes_string(y = "n", axis1 = names(crx.f)[1], axis2 = names(crx.f)[2], axis3 = names(crx.f)[3], axis4 = names(crx.f)[4], axis5 = names(crx.f)[5], axis6 = names(crx.f)[6])) +
+      geom_alluvium(aes_string(fill = names(crx.f)[6]), width = 0, knot.pos = 1/4) +
+      guides(fill = FALSE)+
+      geom_stratum(width = 1/12, fill = "grey", color = "red") +
+      geom_label(stat = "stratum", label.strata = TRUE ) +
+      ylab("Frequency")+
+      scale_x_discrete(limits = c("PriorLabels","Zeisel.Tax.Rank1","Zeisel.Tax.Rank2","Zeisel.Tax.Rank3","Zeisel.Tax.Rank4","FinalPrediction"), expand = c(.05, .05)) +
+      ggtitle(paste(type,"Predictions Cross-Check",sep = " "))
+    
+    pdf(paste(outputFilename,".prediction-crosscheck.pdf",sep=""),width = 40,height = 30)
+    print(p5)
+    print(p6)
+    dev.off()
     save(crx, file=paste(outputFilename,".prediction-crosscheck.htable.Rdata",sep=""))
   }#closes missing PriorLabels
   
