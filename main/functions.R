@@ -757,6 +757,7 @@ HTyper22 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilena
   colnames(testExpSet) <- make.names(colnames(testExpSet))
   
   Htable <- data.frame(cells = rownames(testExpSet))
+  Bigtable <- data.frame(cells = rownames(testExpSet))
   i=1
   for (model in models){
     modelname <- var_as_string(model)
@@ -801,7 +802,7 @@ HTyper22 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilena
     #testPred <- testPred %>% as.tibble() %>% mutate(Prediction = ifelse( (KLe <= 0.5) | (Diff <= 2/class_n), "Unclassified", as.character(Prediction) )) %>% as.data.frame()
     
     colnames(testPred) <- paste(modelname,i, names(testPred),sep = ".")
-    
+    Bigtable <- cbind(Bigtable, testPred)
     Htable <- data.frame(Htable, modelname = testPred[,  paste(modelname,i,"Prediction",sep = ".")])
     
     i=i+1
@@ -839,8 +840,8 @@ HTyper22 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilena
   
   if(!missing(SeuratObject)){
     #update predictions in the meta.data slot 
-    SeuratObject@meta.data <- SeuratObject@meta.data[,which(!colnames(SeuratObject@meta.data) %in% colnames(testPred))]
-    SeuratObject@meta.data <- cbind(SeuratObject@meta.data, testPred)
+    SeuratObject@meta.data <- SeuratObject@meta.data[,which(!colnames(SeuratObject@meta.data) %in% colnames(Bigtable))]
+    SeuratObject@meta.data <- cbind(SeuratObject@meta.data, Bigtable)
     
     #PlotPredictions2(SeuratObject = SeuratObject, model = model, outputFilename = outputFilename)
     
@@ -848,8 +849,8 @@ HTyper22 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilena
     
   }else{
     print("Prediction output is being exported ...")
-    rownames(testPred) <- rownames(testExpSet)
-    return(testPred)
+    rownames(Bigtable) <- rownames(testExpSet)
+    return(Bigtable)
   }#Closes missing(SeuratObj)
 }#closes the function
 
