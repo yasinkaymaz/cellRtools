@@ -757,7 +757,7 @@ HTyper22 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilena
   colnames(testExpSet) <- make.names(colnames(testExpSet))
   
   Htable <- data.frame(cells = rownames(testExpSet))
-  
+  i=1
   for (model in models){
     modelname <- var_as_string(model)
     print(paste("Predicting with model",modelname,"...",sep = " "))
@@ -800,10 +800,11 @@ HTyper22 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilena
     testPred <- testPred %>% as.tibble() %>% mutate(PredictionStatus = if_else( (KLe <= 0.25) | (Diff <= 2/class_n), "Undetermined", "Detected")) %>% as.data.frame()
     #testPred <- testPred %>% as.tibble() %>% mutate(Prediction = ifelse( (KLe <= 0.5) | (Diff <= 2/class_n), "Unclassified", as.character(Prediction) )) %>% as.data.frame()
     
-    colnames(testPred) <- paste(modelname, names(testPred),sep = ".")
+    colnames(testPred) <- paste(modelname,i, names(testPred),sep = ".")
     
-    Htable <- data.frame(Htable, modelname = testPred[,  paste(modelname,"Prediction",sep = ".")])
+    Htable <- data.frame(Htable, modelname = testPred[,  paste(modelname,i,"Prediction",sep = ".")])
     
+    i=i+1
   }#closes models for loop
   
   if(missing(priorLabels)){
