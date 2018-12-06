@@ -753,7 +753,7 @@ PlotPredictions22 <- function(SeuratObject, outputFilename="plotpredictions"){
   p4 <- TSNEPlot(SeuratObject, group.by="FinalPrediction",do.label=T, do.return = T)
   
   p3p4 <- cowplot::plot_grid(p3,p4, ncol = 1, nrow=2)
-  save_plot(filename = paste(outputFilename,".prediction-stats.pdf",sep=""),plot = p3p4,base_height = 12, base_width = 16)
+  save_plot(filename = paste(outputFilename,".prediction-stats.pdf",sep=""),plot = p3p4,base_height = 20, base_width = 24)
   
 }
 
@@ -763,18 +763,10 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
   library(caret)
   library(randomForest)
   library(tidyverse)
-  if(missing(taxTable)){
-    stop("Please provide a proper taxanomy table as a dataframe with 'taxTable' ... exiting!")
-  }else{
-    taxtable <- taxTable
-  }
+  if(missing(taxTable)){stop("Please provide a proper taxanomy table as a dataframe with 'taxTable' ... exiting!")}else{taxtable <- taxTable}
   
-  if(!missing(SeuratObject)){
-    testExpSet <- t(as.matrix(SeuratObject@data))
-  }else{
-    print("Expression matrix is provided...")
-    testExpSet <- t(as.matrix(testExpSet))
-  }#Closes missing(SeuratObj)
+  if(!missing(SeuratObject)){testExpSet <- t(as.matrix(SeuratObject@data))
+  }else{print("Expression matrix is provided...");testExpSet <- t(as.matrix(testExpSet))}#Closes missing(SeuratObj)
   
   colnames(testExpSet) <- make.names(colnames(testExpSet))
   
@@ -851,11 +843,9 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
   ConditionalProbTable$FinalPrediction <- colnames(ConditionalProbTable[,which(!colnames(ConditionalProbTable) %in% c("FinalBestProb"))])[apply(ConditionalProbTable[,which(!colnames(ConditionalProbTable) %in% c("FinalBestProb"))],1,which.max)]
   
   Htable$FinalPrediction <- ConditionalProbTable$FinalPrediction
+  print(head(Htable))
   
-  if(missing(priorLabels)){
-    print("Prior class labels are not provided!")
-    
-  }else{
+  if(missing(priorLabels)){print("Prior class labels are not provided!")}else{
     #Provided prior class labels (priorLabels) has to be a dataframe with same rownames as input testExpSet with one column storing labels.
     priorLabels <- as.data.frame(priorLabels)
     colnames(priorLabels) <- c("Prior")
