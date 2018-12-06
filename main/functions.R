@@ -740,12 +740,17 @@ HTyper2 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilenam
   }#Closes missing(SeuratObj)
 }#closes the function
 
-HTyper22 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilename="plotpredictions"){
+HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, outputFilename="plotpredictions"){
   
   #models is a list of of rf models
   library(caret)
   library(randomForest)
   library(tidyverse)
+  if(missing(taxTable)){
+    stop("Please provide a proper taxanomy table with 'taxTable' ... exiting!")
+  }else{
+    taxtable <- read.delim(taxTable, header=F)
+  }
   
   if(!missing(SeuratObject)){
     testExpSet <- t(as.matrix(SeuratObject@data))
@@ -808,6 +813,25 @@ HTyper22 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilena
     i=i+1
   }#closes models for loop
   
+  ConditionalProbTable <- NULL
+  leafNames <- NULL
+  #For each leaf:
+  for(j in 1:dim(taxtable)[1]){
+    leafName <- paste(taxtable[j,dim(taxtable)[2]], ".prod",sep = "")
+    print(leafName)
+    #Calculate the Conditional Probabilities
+    nodeNames <- NULL
+    for(i in 1:length(models.list)){
+      print(paste("model",i, taxtable[j,i], sep=".")); 
+      nodeNames <- c(nodeNames, paste("model",i, taxtable[j,i], sep="."));   
+    }
+    ConditionalProbTable <- cbind(ConditionalProbTable, rowProds(as.matrix(Bigtable[,nodeNames])))
+    leafNames <- c(leafNames, leafName)
+  }
+  colnames(ConditionalProbTable) <- leafNames
+  
+
+  
   if(missing(priorLabels)){
     print("Prior class labels are not provided!")
     
@@ -840,8 +864,8 @@ HTyper22 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilena
   
   if(!missing(SeuratObject)){
     #update predictions in the meta.data slot 
-    SeuratObject@meta.data <- SeuratObject@meta.data[,which(!colnames(SeuratObject@meta.data) %in% colnames(Bigtable))]
-    SeuratObject@meta.data <- cbind(SeuratObject@meta.data, Bigtable)
+    SeuratObject@meta.data <- SeuratObject@meta.data[,which(!colnames(SeuratObject@meta.data) %in% colnames(ConditionalProbTable))]
+    SeuratObject@meta.data <- cbind(SeuratObject@meta.data, ConditionalProbTable)
     
     #PlotPredictions2(SeuratObject = SeuratObject, model = model, outputFilename = outputFilename)
     
