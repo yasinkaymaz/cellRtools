@@ -747,7 +747,7 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
   library(randomForest)
   library(tidyverse)
   if(missing(taxTable)){
-    stop("Please provide a proper taxanomy table with 'taxTable' ... exiting!")
+    stop("Please provide a proper taxanomy table as a dataframe with 'taxTable' ... exiting!")
   }else{
     taxtable <- read.delim(taxTable, header=F)
   }
@@ -829,8 +829,8 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
     leafNames <- c(leafNames, leafName)
   }
   colnames(ConditionalProbTable) <- leafNames
-  
-
+  ConditionalProbTable$FinalBestProb <- apply(ConditionalProbTable,1, function(x) max(x) )
+  ConditionalProbTable$FinalPrediction <- apply(ConditionalProbTable[,which(!names(ConditionalProbTable) %in% c("FinalBestProb"))],1,which.max)
   
   if(missing(priorLabels)){
     print("Prior class labels are not provided!")
