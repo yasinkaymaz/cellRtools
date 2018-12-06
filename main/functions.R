@@ -813,7 +813,8 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
     i=i+1
   }#closes models for loop
   
-  ConditionalProbTable <- data.frame(cells = rownames(testExpSet))
+  
+  ConditionalProbTable <- data.frame(matrix(ncol = 0, nrow = length(rownames(Bigtable))))
   leafNames <- NULL
   #For each leaf:
   for(j in 1:dim(taxtable)[1]){
@@ -822,15 +823,17 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
     #Calculate the Conditional Probabilities
     nodeNames <- NULL
     for(i in 1:length(models.list)){
-      print(paste("model",i, taxtable[j,i], sep=".")); 
-      nodeNames <- c(nodeNames, paste("model",i, taxtable[j,i], sep="."));   
+      print(paste("model",i, taxtable[j,i], sep="."));
+      nodeNames <- c(nodeNames, paste("model",i, taxtable[j,i], sep="."));
     }
     ConditionalProbTable <- cbind(ConditionalProbTable, rowProds(as.matrix(Bigtable[,nodeNames])))
     leafNames <- c(leafNames, leafName)
   }
   colnames(ConditionalProbTable) <- leafNames
   ConditionalProbTable$FinalBestProb <- apply(ConditionalProbTable, 1, function(x) max(x) )
-  ConditionalProbTable$FinalPrediction <- apply(ConditionalProbTable[,which(!colnames(ConditionalProbTable) %in% c("FinalBestProb"))], 1, function(x) which(x == max(x)) )
+  ConditionalProbTable$FinalPrediction <- colnames(ConditionalProbTable[,which(!colnames(ConditionalProbTable) %in% c("FinalBestProb"))])[apply(ConditionalProbTable[,which(!colnames(ConditionalProbTable) %in% c("FinalBestProb"))],1,which.max)]
+  
+  Htable <- cbind(Htable, FinalPrediction = ConditionalProbTable$FinalPrediction)
   
   if(missing(priorLabels)){
     print("Prior class labels are not provided!")
@@ -852,14 +855,15 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
     crx <- Htable %>% group_by_at(vars(one_of(names(Htable)))) %>% tally() %>% as.data.frame()
     print(head(crx))
     
-    p5 <- ggplot(crx,aes_string(y = "n", axis1 = names(crx)[1], axis2 = names(crx)[2], axis3 = names(crx)[3], axis4 = names(crx)[4] )) +
-      geom_alluvium(aes_string(fill = names(crx)[4]), width = 1/12) +
+    p5 <- ggplot(crx,aes_string(y = "n", axis1 = names(crx)[1], axis2 = names(crx)[2], axis3 = names(crx)[3], axis4 = names(crx)[4], axis5 = names(crx)[5], axis5 = names(crx)[6] )) +
+      geom_alluvium(aes_string(fill = names(crx)[6]), width = 1/12) +
       geom_stratum(width = 1/12, fill = "black", color = "red") +
       geom_label(stat = "stratum", label.strata = TRUE) +
       scale_x_discrete(limits = names(crx), expand = c(.05, .05)) +
       ggtitle("Predictions Cross-Check")
     
     save_plot(filename = paste(outputFilename,".prediction-crosscheck.pdf",sep=""),plot = p5, base_height = 1.2*class_n, base_width = 1.2*class_n)
+    save(crx, file=paste(outputFilename,".prediction-crosscheck.htable.Rdata",sep=""))
   }#closes missing PriorLabels
   
   if(!missing(SeuratObject)){
