@@ -826,7 +826,7 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
       print(paste("model",i, taxtable[j,i], sep="."));
       nodeNames <- c(nodeNames, paste("model",i, taxtable[j,i], sep="."));
     }
-    ConditionalProbTable <- cbind(ConditionalProbTable, rowProds(as.matrix(Bigtable[,nodeNames])))
+    ConditionalProbTable <- cbind(ConditionalProbTable, matrixStats::rowProds(as.matrix(Bigtable[,nodeNames])))
     leafNames <- c(leafNames, leafName)
   }
   colnames(ConditionalProbTable) <- leafNames
