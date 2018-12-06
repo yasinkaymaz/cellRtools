@@ -844,7 +844,6 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
   
   Htable$FinalPrediction <- ConditionalProbTable$FinalPrediction
   
-  save(Htable, file=paste(outputFilename,".prediction-crosscheck.Full_htable.Rdata",sep=""))
   
   if(missing(priorLabels)){print("Prior class labels are not provided!")}else{
     #Provided prior class labels (priorLabels) has to be a dataframe with same rownames as input testExpSet with one column storing labels.
@@ -852,6 +851,8 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
     colnames(priorLabels) <- c("Prior")
     Htable <- cbind(priorLabels,Htable)
     print(head(Htable))
+    save(Htable, file=paste(outputFilename,".prediction-crosscheck.Full_htable.Rdata",sep=""))
+    
     #Plot the crosscheck here:
     #Crosscheck Predictions
     library(tidyverse)
