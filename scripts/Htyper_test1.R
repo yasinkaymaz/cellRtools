@@ -14,7 +14,7 @@ zeisel.rank4.rf <- get(load("/n/home13/yasinkaymaz/LabSpace/testdata/GEO/Zeisel2
 #zeisel.rank1.rfcv <- get(load("~/codes/test/RF/zeisel.rank1.rfcv.RF_model_notImproved.Robj"))
 #zeisel.rank2.rfcv <- get(load("~/codes/test/RF/zeisel.rank2.rfcv.RF_model_notImproved.Robj"))
 #zeisel.rank3.rfcv <- get(load("~/codes/test/RF/zeisel.rank3.rfcv.RF_model_notImproved.Robj"))
-#zeisel.rank4.rf <- get(load("~/codes/test/RF/redo_rank4/zeisel.rank4.rfcv.RF_model_notImproved.Robj"))
+#zeisel.rank4.rf <- get(load("~/codes/test/RF/redo_rank4/rank4.cv/zeisel.rank4.rfcv.RF_model_notImproved.Robj"))
 
 models.list <- list(zeisel.rank1.rf,zeisel.rank2.rf,zeisel.rank3.rf,zeisel.rank4.rf)
 
@@ -106,3 +106,29 @@ for(i in 1:length(hdatafiles)){
   print(p5)
 }
 dev.off()
+
+
+
+zmode1 <- zeisel.rank1.rfcv
+
+#Recursive training/Prediction
+zeisel.rank1.sub <- get(load("zeisel.rank1.sub.seurat.Robj"))
+
+imp <- as.data.frame(zeisel.rank1.rfcv$finalModel$importance)
+features <- rownames(head(imp[order(imp$MeanDecreaseGini, decreasing=T),],200))
+cells <- rownames(zeisel.rank1.rfcv$finalModel$votes)
+
+R1.LR2 <- zeisel.rank1.sub@meta.data[cells,c("TaxonomyRank1","TaxonomyRank2")]
+colnames(R1.LR2) <- c("R1","CellType")
+
+ExpressionData=as.data.frame(as.matrix(zeisel.rank1.sub@data))
+
+trainingData <- as.data.frame(t(ExpressionData))
+  #It is important to replace '-' with '.' in the names, otherwise, th rf function will throw error: 'Error in eval(predvars, data, env) : object 'RP11-206L10.2' not found'
+  names(trainingData) <- make.names(names(trainingData))
+  trainingData <- trainingData[,features]
+  trainingData <- cbind(trainingData, R1.LR2)
+  #Convert categorical variables to factors, otherwise, it will throw error: 'Error in y - ymean : non-numeric argument to binary operator'
+  trainingData$CellType <- factor(trainingData$CellType)
+
+zmode2 <- RecursiveTrainer(trainingData = trainingData, run.name="z.modeL2")
