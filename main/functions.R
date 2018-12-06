@@ -843,7 +843,9 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
   ConditionalProbTable$FinalPrediction <- colnames(ConditionalProbTable[,which(!colnames(ConditionalProbTable) %in% c("FinalBestProb"))])[apply(ConditionalProbTable[,which(!colnames(ConditionalProbTable) %in% c("FinalBestProb"))],1,which.max)]
   
   Htable$FinalPrediction <- ConditionalProbTable$FinalPrediction
-
+  
+  save(Htable, file=paste(outputFilename,".prediction-crosscheck.Full_htable.Rdata",sep=""))
+  
   if(missing(priorLabels)){print("Prior class labels are not provided!")}else{
     #Provided prior class labels (priorLabels) has to be a dataframe with same rownames as input testExpSet with one column storing labels.
     priorLabels <- as.data.frame(priorLabels)
