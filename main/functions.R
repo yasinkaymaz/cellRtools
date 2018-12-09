@@ -879,7 +879,7 @@ HTyper22 <- function(SeuratObject, testExpSet, taxTable, models, priorLabels, ou
       geom_label(stat = "stratum", label.strata = TRUE ) +
       ylab("Frequency")+
       scale_x_discrete(limits = c("PriorLabels","Zeisel.Tax.Rank1","Zeisel.Tax.Rank2","Zeisel.Tax.Rank3","Zeisel.Tax.Rank4","FinalPrediction"), expand = c(.05, .05)) +
-      ggtitle(paste(type,"Predictions Cross-Check",sep = " "))
+      ggtitle(paste("Predictions","Cross-Check",sep = " "))
     
     pdf(paste(outputFilename,".prediction-crosscheck.pdf",sep=""),width = 40,height = 30)
     print(p5)
