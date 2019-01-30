@@ -181,14 +181,22 @@ SummarizeGSEAoutputs <- function(GSEAoutputDir="./"){
 }
 
 
-QuickSeurat <- function(SeuratObj, scale.only.var=T, PCs=20, perp=30){
+QuickSeurat <- function(SeuratObj, scale.only.var=T, PCs=20, perp=30, vars2reg){
 
   SeuratObj <- FindVariableGenes(SeuratObj, do.plot = F, display.progress = F)
   hv.genes <- head(rownames(SeuratObj@hvg.info), 1000)
   if (scale.only.var == TRUE){
-    SeuratObj <- ScaleData(SeuratObj, genes.use = hv.genes, do.par=T, num.cores = 8)
+    if(!missing(vars2reg)){
+      SeuratObj <- ScaleData(SeuratObj, vars.to.regress = vars2reg, genes.use = hv.genes, do.par=T, num.cores = 8)
+    }else{
+      SeuratObj <- ScaleData(SeuratObj, genes.use = hv.genes, do.par=T, num.cores = 8)
+    }
   }else{
-    SeuratObj <- ScaleData(SeuratObj, do.par=T, num.cores = 8)
+      if(!missing(vars2reg)){
+        SeuratObj <- ScaleData(SeuratObj, vars.to.regress = vars2reg, do.par=T, num.cores = 8)
+  }else{
+        SeuratObj <- ScaleData(SeuratObj, do.par=T, num.cores = 8)
+    }
   }
   SeuratObj <- RunPCA(SeuratObj, pc.genes = hv.genes, do.print = FALSE, pcs.compute=PCs)
   SeuratObj <- FindClusters(SeuratObj, reduction.type = "pca", dims.use = 1:PCs, resolution = 1, print.output = FALSE, save.SNN = TRUE, force.recalc = T)
