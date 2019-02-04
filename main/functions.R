@@ -206,7 +206,7 @@ QuickSeurat <- function(SeuratObj, scale.only.var=T, PCs=20, perp=30, vars2reg){
 
 }
 
-SeuratWrapper <- function(ExpData, ProjectLabel, NewMeta, Normalize=T, suppressLog=F, scale.only.var=T, PCs=20, perp=30, dump.files=F){
+SeuratWrapper <- function(ExpData, ProjectLabel, NewMeta, Normalize=T, suppressLog=F, scale.only.var=T, PCs=20, perp=30, dump.files=F, min.cells=0, min.genes=0){
 
   if(Normalize == TRUE){print("Assuming the input is in count ...")
     }else{
@@ -218,7 +218,7 @@ SeuratWrapper <- function(ExpData, ProjectLabel, NewMeta, Normalize=T, suppressL
       }
     }
 
-  SeuratObj <- CreateSeuratObject(raw.data = ExpData, project = ProjectLabel, min.genes = 500)
+  SeuratObj <- CreateSeuratObject(raw.data = ExpData, project = ProjectLabel, min.cells=min.cells, min.genes = min.genes)
 
   if (Normalize == TRUE) {
     SeuratObj <- NormalizeData(object = SeuratObj)
