@@ -1313,12 +1313,3 @@ HTyper <- function(SeuratObject, testExpSet, models, priorLabels, outputFilename
     return(testPred)
   }#Closes missing(SeuratObj)
 }#closes the function
-
-volcanoPlotly <- function(DEtable){
-  library(plotly)
-  p <- ggplot(DEtable, aes(avg_logFC, y=-1*log10(p_val_adj+10^-200), color=cluster ))+
-    geom_point(aes(text=sprintf("Gene: %s", gene)))+
-    ylab("-log10(padj)")+
-    xlab("log Fold Change")
-  ggplotly(p)
-}

@@ -81,3 +81,59 @@ rm(Campbell2017)
 Tasic2016  <- get(load("~/LabSpace/testdata/GEO/Tasic2016/Tasic2016.seurat.Robj"))
 Tasic2016 <- HTyper22(SeuratObject=Tasic2016, taxTable=TaxonomyRankTable, models = models.list, priorLabels = Tasic2016@meta.data$res.1,  outputFilename="Tasic2016.rfcv.predictions.w-HM")
 rm(Tasic2016)
+
+
+
+hdatafiles <- list.files(pattern = "*htable.Rdata")
+library(tidyverse)
+ library(alluvial)
+ library(ggalluvial)
+
+pdf("DataSets.prediction-crosscheck.pdf",width = 14, height = 10)
+for(i in 1:length(hdatafiles)){
+  type <- strsplit(hdatafiles[i],split = "\\.")[[1]][1]
+  print(type)
+  load(hdatafiles[i])
+  crx.f <- crx %>% mutate(freq = n*100 / sum(n)) %>% filter(freq > 1)
+  p5 <- ggplot(crx.f,aes_string(y = "n", axis1 = names(crx.f)[1], axis2 = names(crx.f)[2], axis3 = names(crx.f)[3], axis4 = names(crx.f)[4], axis5 = names(crx.f)[5], axis6 = names(crx.f)[6])) +
+    geom_alluvium(aes_string(fill = names(crx.f)[6]), width = 0, knot.pos = 1/4) +
+    guides(fill = FALSE)+
+    geom_stratum(width = 1/12, fill = "grey", color = "red") +
+    geom_label(stat = "stratum", label.strata = TRUE ) +
+    ylab("Frequency")+
+    scale_x_discrete(limits = c("PriorLabels","Zeisel.Tax.Rank1","Zeisel.Tax.Rank2","Zeisel.Tax.Rank3","Zeisel.Tax.Rank4","FinalPrediction"), expand = c(.05, .05)) +
+    ggtitle(paste(type,"Predictions Cross-Check",sep = " "))
+  print(p5)
+}
+dev.off()
+
+
+
+freq.Final <- zeisel5000subsampled@meta.data[,c("TaxonomyRank4","FinalPrediction")] %>% as.tibble() %>% dplyr::count(TaxonomyRank4, FinalPrediction) %>% group_by(TaxonomyRank4) %>% mutate(prop = 100*prop.table(n)) %>% as.data.frame()
+
+pp <- ggplot(freq.Final, aes(TaxonomyRank4, FinalPrediction, fill=prop)) +
+    geom_tile(color = "white")+
+    coord_equal()+
+    scale_fill_gradient2(low = "white", high = "red", name="% Predictions")+
+    theme(axis.text.x = element_text(angle = 90))+
+    scale_y_discrete(name ="Predicted Cell Types with Final Model (HRF)")+
+    scale_x_discrete(name ="Cell Types Classes")
+
+save_plot(filename = paste("ZeiselTax4-FinalPrediction",".CrossCheck.pdf",sep=""),plot = pp,base_height = 12, base_width = 12)
+freq.Final %>% write_tsv(path="ZeiselTax4-FinalPrediction.CrossCheck.txt")
+
+
+fullHtable <- get(load("zeisel5000subsampled.rfcv.predictions.w-HM.prediction-crosscheck.Full_htable.Rdata"))
+
+freq.mod3 <- fullHtable %>% as.tibble() %>% dplyr::count(Prior, modelname.3) %>% group_by(Prior) %>% mutate(prop = 100*prop.table(n)) %>% as.data.frame()
+
+pp <- ggplot(freq.mod3, aes(Prior, modelname.3, fill=prop)) +
+    geom_tile(color = "white")+
+    coord_equal()+
+    scale_fill_gradient2(low = "white", high = "red", name="% Predictions")+
+    theme(axis.text.x = element_text(angle = 90))+
+    scale_y_discrete(name ="Predicted Cell Types with model-4")+
+    scale_x_discrete(name ="Cell Types Classes")
+
+save_plot(filename = paste("ZeiselTax4-Model4",".-CrossCheck.pdf",sep=""),plot = pp,base_height = 12, base_width = 12)
+freq.mod3 %>% write_tsv(path="ZeiselTax4-Model4.CrossCheck.txt")

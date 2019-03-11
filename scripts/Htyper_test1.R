@@ -88,21 +88,21 @@ rm(Tasic2016)
 
 
 hdatafiles <- list.files(pattern = "*htable.Rdata")
+library(tidyverse)
+ library(alluvial)
+ library(ggalluvial)
 
-pdf("PositiveControls.prediction-crosscheck.pdf",width = 14, height = 10)
+pdf("DataSets.prediction-crosscheck.pdf",width = 14, height = 10)
 for(i in 1:length(hdatafiles)){
   type <- strsplit(hdatafiles[i],split = "\\.")[[1]][1]
   print(type)
   load(hdatafiles[i])
-  crx.f <- crx %>% mutate(freq = n*100 / sum(n)) %>% filter(freq > 1)
-  p5 <- ggplot(crx.f,aes_string(y = "n", axis1 = names(crx.f)[1], axis2 = names(crx.f)[2], axis3 = names(crx.f)[3], axis4 = names(crx.f)[4], axis5 = names(crx.f)[5] )) +
-    geom_alluvium(aes_string(fill = names(crx.f)[5]), width = 0, knot.pos = 1/4) +
-    guides(fill = FALSE)+
-    geom_stratum(width = 1/12, fill = "grey", color = "red") +
-    geom_label(stat = "stratum", label.strata = TRUE ) +
-    ylab("Frequency")+
-    scale_x_discrete(limits = c("PriorLabels","Zeisel.Tax.Rank1","Zeisel.Tax.Rank2","Zeisel.Tax.Rank3","Zeisel.Tax.Rank4"), expand = c(.05, .05)) +
-    ggtitle(paste(type,"Predictions Cross-Check",sep = " "))
+  p5 <- ggplot(crx,aes_string(y = "n", axis1 = names(crx)[1], axis2 = names(crx)[2], axis3 = names(crx)[3], axis4 = names(crx)[4], axis5 = names(crx)[5], axis5 = names(crx)[6] )) +
+      geom_alluvium(aes_string(fill = names(crx)[6]), width = 1/12) +
+      geom_stratum(width = 1/12, fill = "black", color = "red") +
+      geom_label(stat = "stratum", label.strata = TRUE) +
+      scale_x_discrete(limits = names(crx), expand = c(.05, .05)) +
+      ggtitle("Predictions Cross-Check")
   print(p5)
 }
 dev.off()
