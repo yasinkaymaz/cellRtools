@@ -592,7 +592,7 @@ CellTyper2 <- function(SeuratObject, testExpSet, model, priorLabels, outputFilen
       "Mean MeanDecreaseGini of Featured genes is", mmDGf, '\n',
       sep = ' ')
 
-  if(!is.na(mmDGm)){
+  if(!is.nan(mmDGm)){
     if((mmDGm > mmDGf)|(length(colnames(testsub)) < length(missingGenes) )){
       warning("A significant portion of features are missing...")
       }
