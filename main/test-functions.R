@@ -285,7 +285,7 @@ ClassProbCalculator <- function(tree, Htable){
   print(head(CTip_table))
   return(CTip_table)
 }
-HTyper2 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilename="plotpredictions"){
+HTyper2 <- function(SeuratObject, tree, testExpSet, models, priorLabels, outputFilename="plotpredictions"){
 
   #models is a list of of rf models
   library(caret)
@@ -301,9 +301,9 @@ HTyper2 <- function(SeuratObject, testExpSet, models, priorLabels, outputFilenam
 
   colnames(testExpSet) <- make.names(colnames(testExpSet))
 
-  CTTtables <- ClassifierTreeTraverser(testExpSet = testExpSet, tree = SeuratObject@cluster.tree[[1]], CLoc.list = CLoc.list)
+  CTTtables <- ClassifierTreeTraverser(testExpSet = testExpSet, tree = tree, CLoc.list = CLoc.list)
 
-  Ctable <- ClassProbCalculator(tree = SeuratObject@cluster.tree[[1]],Htable = CTTtables[[1]] )
+  Ctable <- ClassProbCalculator(tree = tree, Htable = CTTtables[[1]] )
   Ctable$HRFPrediction <- str_remove(colnames(Ctable)[apply(Ctable,1,which.max)],"_classProb")
 
   if(!missing(SeuratObject)){
