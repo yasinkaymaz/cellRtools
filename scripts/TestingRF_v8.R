@@ -42,7 +42,7 @@ zeisel.rank3.SM <- get(load("~/codes/test/RF/zeisel.rank3.rfcv.RF_model_notImpro
 
 zeisel5000subsampled <- get(load("~/codes/test/RF/HT_tests/zeisel5000subsampled.seurat.Robj"))
 
-zeisel5000.sm <- CellTyper(SeuratObject = zeisel5000subsampled, model = zeisel.rank3.SM, priorLabels = zeisel5000subsampled@meta.data$TaxonomyRank3, outputFilename = paste("zeisel5000subsampled",".predictions.w-SM",sep = ""))
+zeisel5000.sm <- CellTyper2(SeuratObject = zeisel5000subsampled, model = zeisel.rank3.SM, priorLabels = zeisel5000subsampled@meta.data$TaxonomyRank3, outputFilename = paste("zeisel5000subsampled",".predictions.w-SM",sep = ""))
 #Check accuracy...
 #test with HRF 
 zeisel5000.hrf <- HTyper2(SeuratObject = zeisel5000subsampled, models = CLoc.list)

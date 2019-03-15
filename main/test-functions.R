@@ -74,6 +74,99 @@ BuildRFClassifier <- function(object,training.genes = NULL,training.classes = NU
   classifier <- caret::train(CellType~., data=training.data, trControl=train_control, method=model.method, norm.votes = TRUE, importance=TRUE, proximity = TRUE, ntree=50)
   return(classifier)
 }
+BuildClusterTree <- function(object, genes.use = NULL,  pcs.use = NULL, SNN.use = NULL, do.plot = TRUE, do.reorder = FALSE, reorder.numeric = FALSE, show.progress = TRUE) {
+  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
+  ident.names <- as.character(x = unique(x = object@ident))
+  if (! is.null(x = genes.use)) {
+    genes.use <- intersect(x = genes.use, y = rownames(x = object@data))
+    data.avg <- AverageExpression(
+      object = object,
+      genes.use = genes.use,
+      show.progress = show.progress
+    )
+    data.dist <- dist(t(x = data.avg[genes.use, ]))
+  }
+  if (! is.null(x = pcs.use)) {
+    data.pca <- AveragePCA(object = object)
+    data.dist <- dist(t(x = data.pca[pcs.use,]))
+  }
+  if (! is.null(x = SNN.use)) {
+    num.clusters <- length(x = ident.names)
+    data.dist <- matrix(data = 0, nrow = num.clusters, ncol = num.clusters)
+    rownames(data.dist) <- ident.names
+    colnames(data.dist) <- ident.names
+    for (i in 1:(num.clusters - 1)) {
+      for (j in (i + 1):num.clusters) {
+        subSNN <- SNN.use[
+          match(
+            x = WhichCells(object = object, ident = ident.names[i]),
+            table = colnames(x = SNN.use)
+          ), # Row
+          match(
+            x = WhichCells(object = object, ident = ident.names[j]),
+            table = rownames(x = SNN.use)
+          ) # Column
+          ]
+        d <- mean(subSNN)
+        if (is.na(x = d)) {
+          data.dist[i, j] <- 0
+        } else {
+          data.dist[i, j] <- d
+        }
+      }
+    }
+    diag(x = data.dist) <- 1
+    data.dist <- dist(data.dist)
+  }
+  data.tree <- as.phylo(x = hclust(d = data.dist))
+  object@cluster.tree[[1]] <- data.tree
+  if (do.reorder) {
+    old.ident.order <- sort(x = unique(x = object@ident))
+    data.tree <- object@cluster.tree[[1]]
+    all.desc <- GetDescendants(tree = data.tree, node = (data.tree$Nnode + 2))
+    all.desc <- old.ident.order[all.desc[all.desc <= (data.tree$Nnode + 1)]]
+    object@ident <- factor(x = object@ident, levels = all.desc, ordered = TRUE)
+    if (reorder.numeric) {
+      object <- SetIdent(
+        object = object,
+        cells.use = object@cell.names,
+        ident.use = as.integer(x = object@ident)
+      )
+      object@meta.data[object@cell.names, "tree.ident"] <- as.integer(x = object@ident)
+    }
+    object <- BuildClusterTree(
+      object = object,
+      genes.use = genes.use,
+      pcs.use = pcs.use,
+      do.plot = FALSE,
+      do.reorder = FALSE,
+      show.progress = show.progress
+    )
+  }
+  if (do.plot) {
+    PlotClusterTree(object)
+  }
+  return(object)
+}
+
+PlotClusterTree <- function(object, ...) {
+  if (length(x = object@cluster.tree) == 0) {
+    stop("Phylogenetic tree does not exist, build using BuildClusterTree")
+  }
+  data.tree <- object@cluster.tree[[1]]
+  plot.phylo(x = data.tree, direction = "downwards", ...)
+  nodelabels()
+}
+
+PlotCellPredictionTree <- function(tree){
+
+  ape::plot.phylo(tree,direction = "downwards")
+  dd <- data.frame("L"=c(.8,.9,.5),"R"=c(.2,.1,.5))
+  ape::nodelabels(thermo = dd, horiz = TRUE,cex=1.2)
+}
+  
+
+
 SetIfNull <- function(x, default) {
   if(is.null(x = x)){
     return(default)

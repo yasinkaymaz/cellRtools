@@ -409,7 +409,7 @@ prepareDataset <- function(ExpressionData, CellLabels, run.name, PCs, featureGen
 
 CellTyperTrainer2 <- function(ExpressionData, CellLabels, model.method="rf", run.name, do.splitTest=F, PCs, improve.rf=F, cv_k=5){
   library(randomForest)
-  library(rfUtilities)
+  #library(rfUtilities)
   library(tidyverse)
   library(caret)
 
