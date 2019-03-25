@@ -11,7 +11,7 @@ load("~/data/pbmc3k_final.Rda")
 #create the temp pca files:
 mod.rf <- CellTyperTrainer2(model.method = "rf", run.name = paste("model",sep = "."),cv_k = 10, ExpressionData = as.matrix(pbmc@data),CellLabels = pbmc@meta.data$ClusterNames_0.6,do.splitTest = F,PCs = 10,improve = F)
 
-models <- c("rf","svmRadialWeights","kknn","lda","sparseLDA","rda","regLogistic","wsrf","lda2","stepLDA","avNNet","nnet","pcaNNet","ORFlog")
+models <- c("rf","svmRadialWeights","kknn","lda","rda","regLogistic","wsrf","lda2","stepLDA","avNNet","nnet","pcaNNet","ORFlog")
 runtimetable <- NULL
 for(type in models){
   print(type)
@@ -25,12 +25,11 @@ for(type in models){
 rownames(runtimetable) <- models
 runtimetable
 
-results <- resamples(list(RF=mod.rf, 
-                          SVM=mod.svmRadialWeights, 
-                          KNN=mod.kknn, 
+results <- resamples(list(RF=mod.rf,
+                          SVM=mod.svmRadialWeights,
+                          KNN=mod.kknn,
                           LDA=mod.lda,
                           LDA2=mod.lda2,
-                          SLDA=mod.sparseLDA,
                           STEPLDA=mod.stepLDA,
                           AVNET=mod.avNNet,
                           NNET=mod.nnet,
@@ -48,7 +47,3 @@ pdf("pbmc3k.results.plots.pdf")
 bwplot(results)
 dotplot(results)
 dev.off()
-
-
-
-
